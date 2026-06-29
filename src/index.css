@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+@import '@xyflow/react/dist/style.css';
+
+/* 干掉 React Flow 节点包装器的白底白框 */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* 自定义节点选中样式 */
+.react-flow__node.selected .custom-node {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Toast 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Edge 交互：加大隐形点击区域 + 选中高亮 */
+.react-flow__edge-interaction {
+  stroke-width: 20;
+  cursor: pointer;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #60a5fa !important;
+  stroke-width: 2.5 !important;
+}
+
+/* 隐藏 React Flow 版权标识 */
+.react-flow__attribution {
+  display: none !important;
+}

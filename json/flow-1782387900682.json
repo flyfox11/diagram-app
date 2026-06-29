@@ -1,0 +1,152 @@
+{
+  "id": "flow-1782387900682",
+  "name": "11",
+  "createdAt": "2026-06-26T04:58:46.576Z",
+  "updatedAt": "2026-06-26T04:58:46.576Z",
+  "nodes": [
+    {
+      "id": "node-1782387738895-8vosr",
+      "type": "start",
+      "position": {
+        "x": 759,
+        "y": -47
+      },
+      "data": {
+        "label": "开始"
+      },
+      "measured": {
+        "width": 100,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1782387745022-joa91",
+      "type": "default",
+      "position": {
+        "x": 733.5,
+        "y": 31.5
+      },
+      "data": {
+        "label": "a = 2"
+      },
+      "measured": {
+        "width": 150,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1782387753584-ty713",
+      "type": "diamond",
+      "position": {
+        "x": 756.5,
+        "y": 111
+      },
+      "data": {
+        "label": "a > 2"
+      },
+      "measured": {
+        "width": 100,
+        "height": 70
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1782387770379-ywjfu",
+      "type": "end",
+      "position": {
+        "x": 789.7842062459606,
+        "y": 251.28838124992376
+      },
+      "data": {
+        "label": "结束"
+      },
+      "measured": {
+        "width": 100,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#6b7280",
+        "strokeWidth": 2
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#6b7280"
+      },
+      "source": "node-1782387738895-8vosr",
+      "target": "node-1782387745022-joa91",
+      "id": "xy-edge__node-1782387738895-8vosr-node-1782387745022-joa91"
+    },
+    {
+      "type": "smoothstep",
+      "style": {
+        "stroke": "#6b7280",
+        "strokeWidth": 2
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#6b7280"
+      },
+      "source": "node-1782387745022-joa91",
+      "target": "node-1782387753584-ty713",
+      "id": "xy-edge__node-1782387745022-joa91-node-1782387753584-ty713"
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1782387753584-ty713",
+      "sourceHandle": "left",
+      "target": "node-1782387745022-joa91",
+      "id": "xy-edge__node-1782387753584-ty713left-node-1782387745022-joa91",
+      "data": {
+        "bendPoint": {
+          "x": 577.25,
+          "y": 63.75
+        }
+      },
+      "selected": false
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1782387753584-ty713",
+      "target": "node-1782387770379-ywjfu",
+      "id": "xy-edge__node-1782387753584-ty713-node-1782387770379-ywjfu"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
+  "diagramType": "flowchart"
+}

@@ -1,0 +1,472 @@
+{
+  "id": "flow-1782444178088",
+  "name": "思维1",
+  "createdAt": "2026-06-26T05:04:38.881Z",
+  "updatedAt": "2026-06-26T05:04:38.881Z",
+  "nodes": [
+    {
+      "id": "node-1782444171481",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 512
+      },
+      "data": {
+        "label": "中心主题",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 102,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444190058-zen9",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 356
+      },
+      "data": {
+        "label": "新分支",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444191785-yw45",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 590
+      },
+      "data": {
+        "label": "新分支",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444192029-0ubt",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 668
+      },
+      "data": {
+        "label": "新分支",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444195910-wnhp",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 174
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true,
+        "note": "哈哈哈"
+      },
+      "measured": {
+        "width": 113,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444200744-shq0",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 382
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444200948-irpt",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 434
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true,
+        "flag": true
+      },
+      "measured": {
+        "width": 87,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444204918-n9he",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 590
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444207214-up9k",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 642
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444208524-06ha",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 694
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444215036-tjfk",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 18
+      },
+      "data": {
+        "label": "新标题1",
+        "level": 3,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444217865-1zml",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 486
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444218094-cewo",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 538
+      },
+      "data": {
+        "label": "新分支",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444224591-ilva",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 70
+      },
+      "data": {
+        "label": "新分支2",
+        "level": 3,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444225206-igpk",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 122
+      },
+      "data": {
+        "label": "新分支3",
+        "level": 3,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444228569-zxby",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 174
+      },
+      "data": {
+        "label": "新分支",
+        "level": 3,
+        "expanded": true,
+        "flag": true
+      },
+      "measured": {
+        "width": 87,
+        "height": 34
+      },
+      "selected": true
+    },
+    {
+      "id": "node-1782444228830-17x9",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 226
+      },
+      "data": {
+        "label": "新分支",
+        "level": 3,
+        "expanded": true,
+        "note": "我们是"
+      },
+      "measured": {
+        "width": 87,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444231164-ahgh",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 278
+      },
+      "data": {
+        "label": "新分支",
+        "level": 3,
+        "expanded": true,
+        "note": "1\n2\n3\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn"
+      },
+      "measured": {
+        "width": 87,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1782444231421-qqk0",
+      "type": "mindmap",
+      "position": {
+        "x": 660,
+        "y": 330
+      },
+      "data": {
+        "label": "新分支",
+        "level": 3,
+        "expanded": true,
+        "note": "dfssf"
+      },
+      "measured": {
+        "width": 87,
+        "height": 34
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1782444190058-m2ej",
+      "source": "node-1782444171481",
+      "target": "node-1782444190058-zen9",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444191785-geum",
+      "source": "node-1782444171481",
+      "target": "node-1782444191785-yw45",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444192029-vtxp",
+      "source": "node-1782444171481",
+      "target": "node-1782444192029-0ubt",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444195910-rlo8",
+      "source": "node-1782444190058-zen9",
+      "target": "node-1782444195910-wnhp",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444200744-0xvf",
+      "source": "node-1782444190058-zen9",
+      "target": "node-1782444200744-shq0",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444200948-j7o4",
+      "source": "node-1782444190058-zen9",
+      "target": "node-1782444200948-irpt",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444204918-np49",
+      "source": "node-1782444191785-yw45",
+      "target": "node-1782444204918-n9he",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444207214-ycvv",
+      "source": "node-1782444192029-0ubt",
+      "target": "node-1782444207214-up9k",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444208524-0jjq",
+      "source": "node-1782444192029-0ubt",
+      "target": "node-1782444208524-06ha",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444215036-7hso",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444215036-tjfk",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444217865-9g00",
+      "source": "node-1782444190058-zen9",
+      "target": "node-1782444217865-1zml",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444218094-rhr3",
+      "source": "node-1782444190058-zen9",
+      "target": "node-1782444218094-cewo",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444224591-dlhr",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444224591-ilva",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444225206-uw88",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444225206-igpk",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444228569-94e9",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444228569-zxby",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444228830-w53u",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444228830-17x9",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444231164-0hhv",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444231164-ahgh",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1782444231421-0gy7",
+      "source": "node-1782444195910-wnhp",
+      "target": "node-1782444231421-qqk0",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
+  "diagramType": "mindmap"
+}
