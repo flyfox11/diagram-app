@@ -10,7 +10,9 @@ import {
   Upload,
   Download,
   AlertTriangle,
+  PackageCheck,
 } from 'lucide-react'
+import JSZip from 'jszip'
 import { useDiagramStore } from '@/store/diagram-store'
 import { useSettingsStore } from '@/store/settings-store'
 import { listDiagrams, deleteDiagram, getDiagram, saveDiagram } from '@/services/api'
@@ -37,6 +39,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [exporting, setExporting] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [exportingAll, setExportingAll] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ filename: string; displayName: string } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -82,55 +85,115 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
     }
   }
 
-  // 导入 JSON 文件
+  // 导入 JSON 文件（支持单个、多个、ZIP）
   const handleImportClick = () => {
     fileInputRef.current?.click()
   }
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.name.endsWith('.json')) {
-      alert('请选择 JSON 文件')
-      e.target.value = ''
-      return
-    }
-
-    setImporting(true)
+  // 导入单个 JSON 数据到存储
+  const importOne = async (jsonText: string, fallbackName: string): Promise<boolean> => {
     try {
-      const text = await file.text()
-      const data = JSON.parse(text) as DiagramData
+      const data = JSON.parse(jsonText) as DiagramData
+      if (!data.nodes || !data.edges) return false
 
-      // 基本校验
-      if (!data.nodes || !data.edges) {
-        alert('JSON 格式不正确：缺少 nodes 或 edges 字段')
-        return
-      }
-
-      // 生成新 ID 避免冲突
-      const newId = `imported-${Date.now()}`
-      const newName = file.name.replace(/\.json$/i, '')
+      const newId = `imported-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      const newName = data.name || fallbackName
       const now = new Date().toISOString()
       const diagramData: DiagramData = {
         ...data,
         id: newId,
         name: newName,
-        createdAt: now,
+        createdAt: data.createdAt || now,
         updatedAt: now,
       }
-
       await saveDiagram(
         settings.githubToken,
         settings.repoConfig,
         `${newId}.json`,
         diagramData
       )
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    setImporting(true)
+    let success = 0
+    let failed = 0
+
+    try {
+      for (const file of files) {
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          // ZIP 文件：解压并导入所有 JSON
+          const zip = await JSZip.loadAsync(file)
+          const jsonEntries = Object.values(zip.files).filter(
+            (f) => !f.dir && f.name.toLowerCase().endsWith('.json')
+          )
+          for (const entry of jsonEntries) {
+            const text = await entry.async('string')
+            const name = entry.name.replace(/\.json$/i, '').split('/').pop() || '导入'
+            const ok = await importOne(text, name)
+            ok ? success++ : failed++
+          }
+        } else if (file.name.toLowerCase().endsWith('.json')) {
+          // JSON 文件
+          const text = await file.text()
+          const name = file.name.replace(/\.json$/i, '')
+          const ok = await importOne(text, name)
+          ok ? success++ : failed++
+        } else {
+          failed++
+        }
+      }
       await fetchList()
+
+      if (success > 0 && failed === 0) {
+        // 全部成功
+      } else if (success > 0 && failed > 0) {
+        alert(`导入完成：成功 ${success} 个，失败 ${failed} 个`)
+      } else if (success === 0) {
+        alert('导入失败：文件格式不正确')
+      }
     } catch (e) {
       alert(`导入失败: ${(e as Error).message}`)
     } finally {
       setImporting(false)
       e.target.value = ''
+    }
+  }
+
+  // 一键导出全部为 ZIP
+  const handleExportAll = async () => {
+    if (fileList.length === 0) return
+    setExportingAll(true)
+    try {
+      const zip = new JSZip()
+      for (const file of fileList) {
+        const data = await getDiagram(
+          settings.githubToken,
+          settings.repoConfig,
+          `${file.id}.json`
+        )
+        const name = (file.name || file.id).replace(/[\\/:*?"<>|]/g, '_')
+        zip.file(`${name}.json`, JSON.stringify(data, null, 2))
+      }
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const date = new Date().toISOString().slice(0, 10)
+      a.download = `diagrams-${date}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert(`导出失败: ${(e as Error).message}`)
+    } finally {
+      setExportingAll(false)
     }
   }
 
@@ -215,10 +278,19 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
             <Upload className="w-4 h-4" />
             {importing ? '导入中...' : '导入'}
           </button>
+          <button
+            onClick={handleExportAll}
+            disabled={exportingAll || fileList.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <PackageCheck className="w-4 h-4" />
+            {exportingAll ? '导出中...' : '导出全部'}
+          </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json"
+            accept=".json,.zip"
+            multiple
             onChange={handleImportFile}
             className="hidden"
           />

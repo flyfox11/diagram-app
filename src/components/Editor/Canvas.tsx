@@ -1,4 +1,5 @@
 import { useCallback, useState, useRef, useEffect, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ReactFlow,
   Background,
@@ -26,7 +27,10 @@ import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote
 
 /** ---- 工具函数 ---- */
 
-/** 正交路径穿过弯折点 */
+/**
+ * 正交路径穿过弯折点（横平竖直）
+ * 同向（都垂直/都水平）时用 5 段 S 形路由，避免弯折点偏出自然范围时产生多余线段
+ */
 function getOrthogonalBentPath(
   sx: number, sy: number, sourcePos: Position,
   bx: number, by: number,
@@ -36,13 +40,21 @@ function getOrthogonalBentPath(
   const tgtV = targetPos === Position.Top || targetPos === Position.Bottom
 
   if (srcV && tgtV) {
-    return `M ${sx},${sy} L ${sx},${by} L ${bx},${by} L ${bx},${ty} L ${tx},${ty}`
+    // 都垂直：5 段 S 形，水平段在 y 中点，永不产生多余线
+    const midY1 = (sy + by) / 2
+    const midY2 = (by + ty) / 2
+    return `M ${sx},${sy} L ${sx},${midY1} L ${bx},${midY1} L ${bx},${midY2} L ${tx},${midY2} L ${tx},${ty}`
   } else if (!srcV && !tgtV) {
-    return `M ${sx},${sy} L ${bx},${sy} L ${bx},${by} L ${tx},${by} L ${tx},${ty}`
+    // 都水平：5 段 S 形，竖直段在 x 中点
+    const midX1 = (sx + bx) / 2
+    const midX2 = (bx + tx) / 2
+    return `M ${sx},${sy} L ${midX1},${sy} L ${midX1},${by} L ${midX2},${by} L ${midX2},${ty} L ${tx},${ty}`
   } else if (srcV && !tgtV) {
-    return `M ${sx},${sy} L ${sx},${by} L ${bx},${by} L ${tx},${by} L ${tx},${ty}`
+    // 源垂直 → 目标水平：3 段折线（自然合理，不会多余）
+    return `M ${sx},${sy} L ${sx},${by} L ${tx},${by} L ${tx},${ty}`
   } else {
-    return `M ${sx},${sy} L ${bx},${sy} L ${bx},${by} L ${bx},${ty} L ${tx},${ty}`
+    // 源水平 → 目标垂直：3 段折线
+    return `M ${sx},${sy} L ${bx},${sy} L ${bx},${ty} L ${tx},${ty}`
   }
 }
 
@@ -256,8 +268,19 @@ function NodeLinkIcon({ id, data }: { id: string; data: NodeData }) {
   const link = data?.link as { url: string; title?: string } | undefined
   const [showTooltip, setShowTooltip] = useState(false)
   const [copied, setCopied] = useState(false)
+  const iconRef = useRef<HTMLSpanElement>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
 
   if (!link) return null
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect()
+      setTooltipPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setShowTooltip(true)
+  }
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -279,16 +302,19 @@ function NodeLinkIcon({ id, data }: { id: string; data: NodeData }) {
 
   return (
     <span
+      ref={iconRef}
       className="relative cursor-pointer text-blue-400 hover:text-blue-300"
-      onMouseEnter={(e) => { e.stopPropagation(); setShowTooltip(true) }}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={(e) => { e.stopPropagation(); setShowTooltip(false) }}
       onClick={(e) => e.stopPropagation()}
     >
       <Link2 className="w-3.5 h-3.5" />
-      {showTooltip && (
+      {showTooltip && tooltipPos && createPortal(
         <div
-          className="absolute top-full left-0 mt-1 z-50 bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-2 min-w-[200px]"
+          className="fixed z-[9999] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-2 min-w-[200px]"
+          style={{ top: tooltipPos.top, left: tooltipPos.left }}
           onClick={(e) => e.stopPropagation()}
+          onMouseLeave={(e) => { e.stopPropagation(); setShowTooltip(false) }}
         >
           <div className="text-xs text-gray-300 mb-1.5 truncate max-w-[180px]">
             {link.title || link.url}
@@ -327,7 +353,8 @@ function NodeLinkIcon({ id, data }: { id: string; data: NodeData }) {
             </button>
           </div>
           {copied && <div className="text-xs text-green-400 mt-1">已复制到剪贴板</div>}
-        </div>
+        </div>,
+        document.body
       )}
     </span>
   )

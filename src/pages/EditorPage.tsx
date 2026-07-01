@@ -69,6 +69,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     redo,
     _past,
     _future,
+    pushHistory,
   } = useDiagramStore()
 
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -81,6 +82,8 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   }
 
   // 加载已有文件（dev 模式不需要 isConfigured）
+  const [diagramLoading, setDiagramLoading] = useState(false)
+
   useEffect(() => {
     if (!id || id === 'new') {
       resetEditor()
@@ -95,10 +98,20 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
       return
     }
 
+    // 立即清空旧数据，避免显示上一个图的内容
+    resetEditor()
+    setDiagramLoading(true)
+
     const filename = `${id}.json`
     getDiagram(settings.githubToken, settings.repoConfig, filename)
-      .then((data) => loadDiagram(data))
-      .catch((e) => setSaveError(`加载失败: ${(e as Error).message}`))
+      .then((data) => {
+        loadDiagram(data)
+        setDiagramLoading(false)
+      })
+      .catch((e) => {
+        setSaveError(`加载失败: ${(e as Error).message}`)
+        setDiagramLoading(false)
+      })
   }, [id, isConfigured, searchParams, setDiagramType])
 
   const handleSave = useCallback(async () => {
@@ -221,20 +234,34 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     }
   }, [showExportMenu])
 
-  // React Flow 变更处理 —— 使用内置 applyNodeChanges / applyEdgeChanges
+  // React Flow 变更处理
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => updateNodes((nds) => applyNodeChanges(changes, nds)),
-    [updateNodes]
+    (changes) => {
+      // 删除操作推入历史
+      if (changes.some((c) => c.type === 'remove')) {
+        pushHistory()
+      }
+      updateNodes((nds) => applyNodeChanges(changes, nds))
+    },
+    [updateNodes, pushHistory]
   )
 
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => updateEdges((eds) => applyEdgeChanges(changes, eds)),
-    [updateEdges]
+    (changes) => {
+      if (changes.some((c) => c.type === 'remove')) {
+        pushHistory()
+      }
+      updateEdges((eds) => applyEdgeChanges(changes, eds))
+    },
+    [updateEdges, pushHistory]
   )
 
   const onConnect: OnConnect = useCallback(
-    (connection) => updateEdges((eds) => addEdge(connection, eds)),
-    [updateEdges]
+    (connection) => {
+      pushHistory()
+      updateEdges((eds) => addEdge(connection, eds))
+    },
+    [updateEdges, pushHistory]
   )
 
   return (
@@ -384,6 +411,17 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
               />
               {/* PNG 导出桥接：在 ReactFlowProvider 内部获取 fitView */}
               <PngExportBridge onReady={(fn) => { exportPngRef.current = fn; setPngReady(!!fn) }} />
+              {/* 数据异步加载完成后自动 fitView */}
+              <FitViewOnLoad fileKey={currentFile} nodeCount={nodes.length} />
+              {/* 加载遮罩：避免显示上一个图的残留内容 */}
+              {diagramLoading && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-950">
+                  <div className="flex flex-col items-center gap-2 text-gray-500">
+                    <div className="w-6 h-6 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
+                    <span className="text-xs">加载中…</span>
+                  </div>
+                </div>
+              )}
               {/* 思维导图快捷键提示 */}
               {diagramType === 'mindmap' && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 px-4 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-xs text-gray-400 backdrop-blur-sm">
@@ -419,9 +457,32 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   )
 }
 
+/** 数据加载后自动 fitView（解决异步加载时 fitView 对空节点执行的问题） */
+function FitViewOnLoad({ fileKey, nodeCount }: { fileKey: string | null; nodeCount: number }) {
+  const { fitView, getNodes } = useReactFlow()
+  const fittedKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    // 只在 fileKey 变化且节点已加载时执行
+    if (fileKey === fittedKey.current) return
+    if (nodeCount === 0) return
+
+    fittedKey.current = fileKey
+    // 等 React Flow 渲染完节点再 fitView
+    const timer = setTimeout(() => {
+      if (getNodes().length > 0) {
+        fitView({ padding: 0.1, duration: 300 })
+      }
+    }, 80)
+    return () => clearTimeout(timer)
+  }, [fileKey, nodeCount, fitView, getNodes])
+
+  return null
+}
+
 /** PNG 导出桥接组件：在 ReactFlowProvider 内部使用 useReactFlow */
 function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | null) => void }) {
-  const { setViewport, getNodes, getNodesBounds, fitView } = useReactFlow()
+  const { setViewport, getNodes, getNodesBounds, getEdges, fitView } = useReactFlow()
   const currentName = useDiagramStore((s) => s.currentName)
 
   useEffect(() => {
@@ -433,10 +494,29 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
       if (allNodes.length === 0) return
 
       // 1. 计算节点边界框（flow 坐标）
-      const bounds = getNodesBounds(allNodes)
+      const nodeBounds = getNodesBounds(allNodes)
 
-      // 2. 计算合适的 zoom（限制图片尺寸不超过 2400px）
-      const padding = 40
+      // 2. 扩展边界：把连线的弯折点也纳入（流程图回环箭头会超出节点范围）
+      let minX = nodeBounds.x
+      let minY = nodeBounds.y
+      let maxX = nodeBounds.x + nodeBounds.width
+      let maxY = nodeBounds.y + nodeBounds.height
+
+      const allEdges = getEdges()
+      for (const edge of allEdges) {
+        const bp = edge.data?.bendPoint as { x: number; y: number } | undefined
+        if (bp) {
+          minX = Math.min(minX, bp.x)
+          minY = Math.min(minY, bp.y)
+          maxX = Math.max(maxX, bp.x)
+          maxY = Math.max(maxY, bp.y)
+        }
+      }
+
+      const bounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+
+      // 3. 计算合适的 zoom（限制图片尺寸不超过 2400px）
+      const padding = 50
       const maxDim = 2400
       const zoom = Math.min(
         maxDim / (bounds.width + padding * 2),
@@ -444,18 +524,17 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
         2 // 最大 2 倍
       )
 
-      // 3. 直接设置 viewport，让节点左上角对齐到 (padding, padding)
-      //    不用 fitView 动画，避免时序问题
+      // 4. 直接设置 viewport，让节点左上角对齐到 (padding, padding)
       setViewport({
         x: -bounds.x * zoom + padding,
         y: -bounds.y * zoom + padding,
         zoom,
       }, { duration: 0 })
 
-      // 4. 等待一帧渲染
+      // 5. 等待一帧渲染
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
-      // 5. 直接隐藏背景圆点和控件（不依赖 filter，因为 SVG className 不是字符串）
+      // 6. 直接隐藏背景圆点和控件
       const hideSelectors = [
         '.react-flow__background',
         '.react-flow__controls',
@@ -472,7 +551,7 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
         }
       }
 
-      // 6. 精确截图：尺寸 = 节点像素尺寸 + 两侧留白
+      // 7. 精确截图
       const captureWidth = bounds.width * zoom + padding * 2
       const captureHeight = bounds.height * zoom + padding * 2
 
@@ -484,16 +563,15 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
           height: captureHeight,
         })
       } finally {
-        // 7. 恢复隐藏的元素
+        // 8. 恢复
         for (const e of hidden) {
           e.style.visibility = ''
         }
-        // 8. 恢复 viewport
         fitView({ padding: 0.1, duration: 300 })
       }
     })
     return () => onReady(null)
-  }, [setViewport, getNodes, getNodesBounds, fitView, currentName, onReady])
+  }, [setViewport, getNodes, getNodesBounds, getEdges, fitView, currentName, onReady])
 
   return null
 }
