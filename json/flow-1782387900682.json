@@ -2,14 +2,14 @@
   "id": "flow-1782387900682",
   "name": "流程图",
   "createdAt": "2026-06-26T04:58:46.576Z",
-  "updatedAt": "2026-07-01T08:11:19.322Z",
+  "updatedAt": "2026-07-01T09:42:22.384Z",
   "nodes": [
     {
       "id": "node-1782387738895-8vosr",
       "type": "start",
       "position": {
-        "x": 759,
-        "y": -47
+        "x": 758.5,
+        "y": -47.5
       },
       "data": {
         "label": "开始"
@@ -18,7 +18,7 @@
         "width": 100,
         "height": 38
       },
-      "selected": false,
+      "selected": true,
       "dragging": false
     },
     {
