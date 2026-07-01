@@ -178,6 +178,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
     )
 
     set({ nodes: layoutedNodes, edges: allEdges, isDirty: true })
+    // 延迟重新布局：等 React Flow 测量真实节点高度后再收紧间距
+    requestAnimationFrame(() => requestAnimationFrame(() => get().relayoutMindMap()))
     return childId
   },
 
@@ -216,6 +218,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
     )
 
     set({ nodes: layoutedNodes, edges: allEdges, isDirty: true })
+    // 延迟重新布局：等 React Flow 测量真实节点高度后再收紧间距
+    requestAnimationFrame(() => requestAnimationFrame(() => get().relayoutMindMap()))
     return siblingId
   },
 

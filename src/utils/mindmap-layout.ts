@@ -2,7 +2,13 @@ import type { Node, Edge } from '@xyflow/react'
 
 const H_GAP = 220 // 父子水平间距
 const V_GAP = 16  // 兄弟节点垂直间距
-const NODE_H = 36 // 节点高度
+const NODE_H = 36 // 默认节点高度
+
+/** 获取节点的实际测量高度（图片节点更高） */
+function getNodeHeight(node: Node | undefined): number {
+  const measured = node?.measured as { height?: number } | undefined
+  return measured?.height || NODE_H
+}
 
 type PositionMap = Record<string, { x: number; y: number }>
 
@@ -53,13 +59,15 @@ function layoutSubtree(
   childrenMap: Record<string, string[]>
 ): { height: number; positions: PositionMap } {
   const node = nodes.find((n) => n.id === nodeId)
+  const nodeH = getNodeHeight(node)
   const expanded = node?.data?.expanded !== false
   const children = expanded ? childrenMap[nodeId] || [] : []
 
   if (children.length === 0) {
+    // React Flow position 是左上角，直接用 y
     return {
-      height: NODE_H,
-      positions: { [nodeId]: { x, y: y + NODE_H / 2 } },
+      height: nodeH,
+      positions: { [nodeId]: { x, y } },
     }
   }
 
@@ -73,13 +81,12 @@ function layoutSubtree(
   }
   totalHeight -= V_GAP
 
-  const firstChild = childPositions[children[0]]
-  const lastChild = childPositions[children[children.length - 1]]
-  const centerY = (firstChild.y + lastChild.y) / 2
+  // 父节点居中于子节点范围（左上角定位）
+  const parentY = y + totalHeight / 2 - nodeH / 2
 
   return {
-    height: Math.max(totalHeight, NODE_H),
-    positions: { [nodeId]: { x, y: centerY }, ...childPositions },
+    height: Math.max(totalHeight, nodeH),
+    positions: { [nodeId]: { x, y: parentY }, ...childPositions },
   }
 }
 
