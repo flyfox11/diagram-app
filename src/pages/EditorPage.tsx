@@ -9,12 +9,17 @@ import {
   List,
   Undo2,
   Redo2,
+  Download,
+  FileJson,
+  Image as ImageIcon,
+  ChevronDown,
 } from 'lucide-react'
 import {
   ReactFlowProvider,
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  useReactFlow,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
@@ -22,6 +27,7 @@ import {
 import { useDiagramStore } from '@/store/diagram-store'
 import { useSettingsStore } from '@/store/settings-store'
 import { saveDiagram, getDiagram } from '@/services/api'
+import { exportElementAsPng } from '@/utils/export-png'
 import Canvas from '@/components/Editor/Canvas'
 import NodePalette from '@/components/Editor/NodePalette'
 import OutlineView from '@/components/Editor/OutlineView'
@@ -155,6 +161,66 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [handleSave, undo, redo])
 
+  // 导出 JSON
+  const handleExportJson = useCallback(() => {
+    setShowExportMenu(false)
+    const fileId = currentFile || `flow-${Date.now()}`
+    const data = {
+      id: fileId,
+      name: currentName || '未命名',
+      createdAt: createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      nodes,
+      edges,
+      viewport,
+      diagramType,
+    }
+    const json = JSON.stringify(data, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentName || fileId}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('success', 'JSON 已导出')
+  }, [currentFile, currentName, createdAt, nodes, edges, viewport, diagramType])
+
+  // PNG 导出（由 PngExportBridge 注入函数，用 ref 避免 useState 把函数当 updater 执行）
+  const exportPngRef = useRef<(() => Promise<void>) | null>(null)
+  const [pngReady, setPngReady] = useState(false)
+  const [exportingPng, setExportingPng] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleExportPng = useCallback(async () => {
+    const fn = exportPngRef.current
+    if (!fn) return
+    setShowExportMenu(false)
+    setExportingPng(true)
+    try {
+      await fn()
+      showToast('success', 'PNG 已导出')
+    } catch (e) {
+      showToast('error', `导出失败: ${(e as Error).message}`)
+    } finally {
+      setExportingPng(false)
+    }
+  }, [])
+
+  // 点击外部关闭导出菜单
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handler)
+      return () => document.removeEventListener('mousedown', handler)
+    }
+  }, [showExportMenu])
+
   // React Flow 变更处理 —— 使用内置 applyNodeChanges / applyEdgeChanges
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => updateNodes((nds) => applyNodeChanges(changes, nds)),
@@ -254,6 +320,39 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
             <Save className="w-4 h-4" />
             {saving ? '保存中...' : '保存'}
           </button>
+
+          {/* 导出下拉菜单 */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors text-sm"
+            >
+              <Download className="w-4 h-4" />
+              导出
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
+                <button
+                  onClick={handleExportJson}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
+                >
+                  <FileJson className="w-4 h-4 text-blue-400" />
+                  导出 JSON
+                </button>
+                <div className="border-t border-gray-700" />
+                <button
+                  onClick={handleExportPng}
+                  disabled={!pngReady || exportingPng}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ImageIcon className="w-4 h-4 text-green-400" />
+                  {exportingPng ? '导出中...' : '导出 PNG'}
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={onOpenSettings}
             className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
@@ -283,6 +382,8 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
               />
+              {/* PNG 导出桥接：在 ReactFlowProvider 内部获取 fitView */}
+              <PngExportBridge onReady={(fn) => { exportPngRef.current = fn; setPngReady(!!fn) }} />
               {/* 思维导图快捷键提示 */}
               {diagramType === 'mindmap' && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 px-4 py-2 bg-gray-900/90 border border-gray-700 rounded-lg text-xs text-gray-400 backdrop-blur-sm">
@@ -316,4 +417,83 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
       )}
     </div>
   )
+}
+
+/** PNG 导出桥接组件：在 ReactFlowProvider 内部使用 useReactFlow */
+function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | null) => void }) {
+  const { setViewport, getNodes, getNodesBounds, fitView } = useReactFlow()
+  const currentName = useDiagramStore((s) => s.currentName)
+
+  useEffect(() => {
+    onReady(async () => {
+      const el = document.querySelector('.react-flow') as HTMLElement
+      if (!el) return
+
+      const allNodes = getNodes()
+      if (allNodes.length === 0) return
+
+      // 1. 计算节点边界框（flow 坐标）
+      const bounds = getNodesBounds(allNodes)
+
+      // 2. 计算合适的 zoom（限制图片尺寸不超过 2400px）
+      const padding = 40
+      const maxDim = 2400
+      const zoom = Math.min(
+        maxDim / (bounds.width + padding * 2),
+        maxDim / (bounds.height + padding * 2),
+        2 // 最大 2 倍
+      )
+
+      // 3. 直接设置 viewport，让节点左上角对齐到 (padding, padding)
+      //    不用 fitView 动画，避免时序问题
+      setViewport({
+        x: -bounds.x * zoom + padding,
+        y: -bounds.y * zoom + padding,
+        zoom,
+      }, { duration: 0 })
+
+      // 4. 等待一帧渲染
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+      // 5. 直接隐藏背景圆点和控件（不依赖 filter，因为 SVG className 不是字符串）
+      const hideSelectors = [
+        '.react-flow__background',
+        '.react-flow__controls',
+        '.react-flow__minimap',
+        '.react-flow__attribution',
+        '.react-flow__panel',
+      ]
+      const hidden: HTMLElement[] = []
+      for (const sel of hideSelectors) {
+        const e = el.querySelector(sel) as HTMLElement | null
+        if (e) {
+          hidden.push(e)
+          e.style.visibility = 'hidden'
+        }
+      }
+
+      // 6. 精确截图：尺寸 = 节点像素尺寸 + 两侧留白
+      const captureWidth = bounds.width * zoom + padding * 2
+      const captureHeight = bounds.height * zoom + padding * 2
+
+      try {
+        await exportElementAsPng(el, currentName || '导出', {
+          pixelRatio: 2,
+          backgroundColor: '#ffffff',
+          width: captureWidth,
+          height: captureHeight,
+        })
+      } finally {
+        // 7. 恢复隐藏的元素
+        for (const e of hidden) {
+          e.style.visibility = ''
+        }
+        // 8. 恢复 viewport
+        fitView({ padding: 0.1, duration: 300 })
+      }
+    })
+    return () => onReady(null)
+  }, [setViewport, getNodes, getNodesBounds, fitView, currentName, onReady])
+
+  return null
 }
