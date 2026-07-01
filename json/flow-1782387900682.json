@@ -2,7 +2,7 @@
   "id": "flow-1782387900682",
   "name": "流程图",
   "createdAt": "2026-06-26T04:58:46.576Z",
-  "updatedAt": "2026-07-01T09:42:22.384Z",
+  "updatedAt": "2026-07-01T09:42:50.649Z",
   "nodes": [
     {
       "id": "node-1782387738895-8vosr",
@@ -18,7 +18,7 @@
         "width": 100,
         "height": 38
       },
-      "selected": true,
+      "selected": false,
       "dragging": false
     },
     {
