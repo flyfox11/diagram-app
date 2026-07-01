@@ -2,7 +2,7 @@
   "id": "flow-1782387900682",
   "name": "流程图",
   "createdAt": "2026-06-26T04:58:46.576Z",
-  "updatedAt": "2026-07-01T09:43:26.822Z",
+  "updatedAt": "2026-07-01T12:58:41.023Z",
   "nodes": [
     {
       "id": "node-1782387738895-8vosr",
@@ -67,38 +67,6 @@
       },
       "measured": {
         "width": 100,
-        "height": 38
-      },
-      "selected": false,
-      "dragging": false
-    },
-    {
-      "id": "node-1782898995574-tt8an",
-      "type": "start",
-      "position": {
-        "x": 1074.1421031229802,
-        "y": -32.60580937503812
-      },
-      "data": {
-        "label": "开始 / 结束"
-      },
-      "measured": {
-        "width": 120,
-        "height": 38
-      }
-    },
-    {
-      "id": "node-1782898997401-8zrmz",
-      "type": "default",
-      "position": {
-        "x": 1059.1421031229802,
-        "y": 43.89419062496188
-      },
-      "data": {
-        "label": "处理过程"
-      },
-      "measured": {
-        "width": 150,
         "height": 38
       },
       "selected": false,
@@ -174,22 +142,6 @@
         }
       },
       "selected": false
-    },
-    {
-      "type": "custom",
-      "style": {
-        "stroke": "#94a3b8",
-        "strokeWidth": 1.5
-      },
-      "markerEnd": {
-        "type": "arrowclosed",
-        "color": "#94a3b8",
-        "width": 16,
-        "height": 16
-      },
-      "source": "node-1782898995574-tt8an",
-      "target": "node-1782898997401-8zrmz",
-      "id": "xy-edge__node-1782898995574-tt8an-node-1782898997401-8zrmz"
     }
   ],
   "viewport": {
