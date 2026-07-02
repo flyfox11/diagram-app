@@ -74,7 +74,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
 
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-
+  
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message })
     clearTimeout(toastTimer.current)
@@ -237,7 +237,6 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   // React Flow 变更处理
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      // 删除操作推入历史
       if (changes.some((c) => c.type === 'remove')) {
         pushHistory()
       }

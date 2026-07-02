@@ -66,7 +66,8 @@ export default function NodePalette() {
       </div>
 
       <div className="px-3 py-2 border-t border-gray-800 text-xs text-gray-600">
-        💡 拖拽节点到画布 · 节点间拖拽连线
+        💡 拖拽节点到画布 · 节点间拖拽连线<br />
+        Ctrl+点击多选 · Shift+拖拽框选
       </div>
     </div>
   )

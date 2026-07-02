@@ -39,3 +39,16 @@
 .react-flow__attribution {
   display: none !important;
 }
+
+/* 连线点默认隐藏，hover/选中/连线中显示 */
+.react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+.react-flow__connecting .react-flow__handle {
+  opacity: 1;
+}

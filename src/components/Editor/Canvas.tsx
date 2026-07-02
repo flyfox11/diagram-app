@@ -23,7 +23,7 @@ import {
 } from '@xyflow/react'
 import { useDiagramStore } from '@/store/diagram-store'
 import { getVisibleNodeIds } from '@/utils/mindmap-layout'
-import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X } from 'lucide-react'
+import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X, Palette, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react'
 
 /** ---- 工具函数 ---- */
 
@@ -73,6 +73,7 @@ function CustomEdge({
   data,
   style,
   markerEnd,
+  selected,
 }: EdgeProps) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
   const { screenToFlowPosition } = useReactFlow()
@@ -148,25 +149,27 @@ function CustomEdge({
   return (
     <>
       <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} />
-      <EdgeLabelRenderer>
-        <div
-          className="nodrag nopan"
-          style={{
-            position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${handleX}px, ${handleY}px)`,
-            pointerEvents: 'all',
-          }}
-        >
+      {(selected || dragging) && (
+        <EdgeLabelRenderer>
           <div
-            onPointerDown={onPointerDown}
-            onDoubleClick={onDoubleClick}
-            className={`rounded-full border-2 border-white cursor-move transition-transform ${
-              dragging ? 'bg-blue-400 scale-150' : bend ? 'bg-blue-500 scale-110' : 'bg-blue-600/60 hover:bg-blue-500 hover:scale-125'
-            } ${bend ? 'w-3 h-3' : 'w-2.5 h-2.5'}`}
-            title={bend ? '拖拽移动 · 双击重置' : '拖拽创建弯折点'}
-          />
-        </div>
-      </EdgeLabelRenderer>
+            className="nodrag nopan"
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${handleX}px, ${handleY}px)`,
+              pointerEvents: 'all',
+            }}
+          >
+            <div
+              onPointerDown={onPointerDown}
+              onDoubleClick={onDoubleClick}
+              className={`rounded-full border-2 border-white cursor-move transition-transform ${
+                dragging ? 'bg-blue-400 scale-150' : bend ? 'bg-blue-500 scale-110' : 'bg-blue-600/60 hover:bg-blue-500 hover:scale-125'
+              } ${bend ? 'w-3 h-3' : 'w-2.5 h-2.5'}`}
+              title={bend ? '拖拽移动 · 双击重置' : '拖拽创建弯折点'}
+            />
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   )
 }
@@ -178,6 +181,37 @@ export const edgeTypes: EdgeTypes = {
 }
 
 /** ---- 双击编辑标签组件 ---- */
+
+// 字体预设
+const FONT_FAMILIES = [
+  { label: '默认', value: '' },
+  { label: '微软雅黑', value: '"Microsoft YaHei", sans-serif' },
+  { label: '宋体', value: '"SimSun", serif' },
+  { label: '黑体', value: '"SimHei", sans-serif' },
+  { label: '楷体', value: '"KaiTi", serif' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+]
+
+const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32]
+
+const PRESET_COLORS = [
+  '#ffffff', '#fde68a', '#fca5a5', '#f9a8d4', '#c4b5fd', '#93c5fd',
+  '#6ee7b7', '#fcd34d', '#fb923c', '#f87171', '#a3e635', '#22d3ee',
+]
+
+// labelStyle → inline CSS
+function labelStyleToCSS(style?: LabelStyle): React.CSSProperties {
+  if (!style) return {}
+  return {
+    fontFamily: style.fontFamily || undefined,
+    fontSize: style.fontSize ? `${style.fontSize}px` : undefined,
+    fontWeight: style.bold ? 'bold' : undefined,
+    fontStyle: style.italic ? 'italic' : undefined,
+    color: style.color || undefined,
+  }
+}
 
 function EditableLabel({
   nodeId,
@@ -192,9 +226,23 @@ function EditableLabel({
 }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(value)
+  const [showToolbar, setShowToolbar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const colorInputRef = useRef<HTMLInputElement>(null)
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+  const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
+  const updateNodes = useDiagramStore((s) => s.updateNodes)
+  const updateEdges = useDiagramStore((s) => s.updateEdges)
   const pushHistory = useDiagramStore((s) => s.pushHistory)
+  const diagramType = useDiagramStore((s) => s.diagramType)
+  const relayoutMindMap = useDiagramStore((s) => s.relayoutMindMap)
+
+  // 从 store 读取当前节点的 labelStyle
+  const labelStyle = useDiagramStore((s) => {
+    const node = s.nodes.find((n) => n.id === nodeId)
+    return (node?.data as NodeData)?.labelStyle
+  })
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -202,7 +250,21 @@ function EditableLabel({
       el.focus()
       const len = el.value.length
       el.setSelectionRange(len, len)
+      setShowToolbar(true)
     }
+  }, [editing])
+
+  // 点击外部退出编辑（替代 onBlur，避免工具栏交互触发提交）
+  useEffect(() => {
+    if (!editing) return
+    const onPointerDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as unknown as globalThis.Node)) {
+        commit()
+      }
+    }
+    // 用 mousedown + 延迟，让 select 等控件先响应
+    window.addEventListener('mousedown', onPointerDown, true)
+    return () => window.removeEventListener('mousedown', onPointerDown, true)
   }, [editing])
 
   const commit = () => {
@@ -211,11 +273,13 @@ function EditableLabel({
       updateNodeData(nodeId, { label: trimmed })
     }
     setEditing(false)
+    setShowToolbar(false)
   }
 
   const cancel = () => {
     setText(value)
     setEditing(false)
+    setShowToolbar(false)
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -223,24 +287,199 @@ function EditableLabel({
     if (e.key === 'Escape') cancel()
   }
 
+  // 更新 labelStyle 中某个字段
+  const updateStyle = (patch: Partial<LabelStyle>) => {
+    const current = labelStyle || {}
+    const isFontSizeChange = patch.fontSize !== undefined
+
+    if (isFontSizeChange) {
+      pushHistory()
+    }
+
+    updateNodeData(nodeId, { labelStyle: { ...current, ...patch } })
+
+    // 字号变更后：流程图模式级联推开，思维导图模式重新布局
+    if (isFontSizeChange) {
+      if (diagramType === 'flowchart') {
+      setTimeout(() => {
+        const nodes = useDiagramStore.getState().nodes
+        const edges = useDiagramStore.getState().edges
+
+        // 找到变大的节点
+        const grown = nodes.find((n) => n.id === nodeId)
+        if (!grown) return
+        const gw = grown.measured?.width ?? 0
+        const gh = grown.measured?.height ?? 0
+        if (gw === 0 || gh === 0) return
+
+        // 级联推开：BFS
+        const positionUpdates: Record<string, number> = {}
+        const minGap = 40
+
+        const queue: { id: string; bottom: number; left: number; right: number }[] = [{
+          id: nodeId,
+          bottom: grown.position.y + gh,
+          left: grown.position.x,
+          right: grown.position.x + gw,
+        }]
+
+        while (queue.length > 0) {
+          const current = queue.shift()!
+
+          for (const other of nodes) {
+            if (other.id === current.id) continue
+
+            const ow = other.measured?.width ?? 0
+            const oh = other.measured?.height ?? 0
+            const oy = positionUpdates[other.id] ?? other.position.y
+            const ox = other.position.x
+
+            // 水平方向重叠
+            const hOverlap = ox < current.right && (ox + ow) > current.left
+            if (!hOverlap) continue
+
+            // 在下方且间距不足
+            const isBelow = oy >= current.bottom - oh
+            const gap = oy - current.bottom
+            if (!isBelow || gap >= minGap) continue
+
+            // 推开
+            const newY = current.bottom + minGap
+            if (positionUpdates[other.id] !== undefined) {
+              positionUpdates[other.id] = newY
+            } else {
+              positionUpdates[other.id] = newY
+            }
+            queue.push({ id: other.id, bottom: newY + oh, left: ox, right: ox + ow })
+          }
+        }
+
+        // 应用位置变更
+        if (Object.keys(positionUpdates).length > 0) {
+          updateNodes((nds) =>
+            nds.map((n) => {
+              const newY = positionUpdates[n.id]
+              return newY !== undefined ? { ...n, position: { x: n.position.x, y: newY } } : n
+            })
+          )
+        }
+
+        // 清除关联边的 bendPoint
+        const allMovedIds = new Set([nodeId, ...Object.keys(positionUpdates)])
+        updateEdges((eds) =>
+          eds.map((e) => {
+            if (allMovedIds.has(e.source) || allMovedIds.has(e.target)) {
+              const data = e.data as { bendPoint?: unknown } | undefined
+              if (data?.bendPoint) {
+                return { ...e, data: { ...e.data, bendPoint: undefined } }
+              }
+            }
+            return e
+          })
+        )
+      }, 50)
+      } else {
+        // 思维导图模式：等待 React Flow 重新测量后重新布局
+        setTimeout(() => {
+          relayoutMindMap()
+        }, 50)
+      }
+    }
+  }
+
   if (editing) {
     return (
-      <input
-        ref={inputRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commit}
-        onKeyDown={onKeyDown}
-        className={`bg-gray-700 border border-blue-500 rounded px-1 py-0.5 text-inherit text-center outline-none ${className || ''}`}
-        style={{ width: Math.max(text.length * 10 + 20, 60) }}
-        onClick={(e) => e.stopPropagation()}
-      />
+      <div ref={containerRef} className="relative inline-flex flex-col items-center">
+        {/* mini 工具栏 */}
+        {showToolbar && (
+          <div
+            className="nodrag nopan absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-gray-800 border border-gray-600 rounded-lg px-1.5 py-1 shadow-xl whitespace-nowrap"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* 字体 */}
+            <select
+              value={labelStyle?.fontFamily ?? ''}
+              onChange={(e) => updateStyle({ fontFamily: e.target.value || undefined })}
+              className="bg-gray-700 text-gray-200 text-xs rounded px-1 py-0.5 border border-gray-600 outline-none cursor-pointer"
+              title="字体"
+            >
+              {FONT_FAMILIES.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+            {/* 字号 */}
+            <select
+              value={labelStyle?.fontSize ?? 14}
+              onChange={(e) => updateStyle({ fontSize: Number(e.target.value) })}
+              className="bg-gray-700 text-gray-200 text-xs rounded px-1 py-0.5 border border-gray-600 outline-none cursor-pointer"
+              title="字号"
+            >
+              {FONT_SIZES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            {/* 加粗 */}
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => updateStyle({ bold: !labelStyle?.bold })}
+              className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold border border-gray-600 transition-colors ${labelStyle?.bold ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              title="加粗"
+            >
+              B
+            </button>
+            {/* 倾斜 */}
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => updateStyle({ italic: !labelStyle?.italic })}
+              className={`w-6 h-6 flex items-center justify-center rounded text-xs italic border border-gray-600 transition-colors ${labelStyle?.italic ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              title="倾斜"
+            >
+              I
+            </button>
+            {/* 颜色 — 点击直接唤起系统原生选色器 */}
+            <div className="relative">
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => colorInputRef.current?.click()}
+                className="w-6 h-6 flex items-center justify-center rounded-md border border-gray-500 bg-gray-700 hover:ring-2 hover:ring-blue-400 transition-all"
+                title="文字颜色"
+              >
+                <span
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: labelStyle?.color ?? '#ffffff' }}
+                />
+              </button>
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={labelStyle?.color ?? '#ffffff'}
+                onChange={(e) => updateStyle({ color: e.target.value })}
+                className="sr-only"
+              />
+            </div>
+          </div>
+        )}
+        {/* 输入框 */}
+        <input
+          ref={inputRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
+          className={`bg-gray-700 border border-blue-500 rounded px-1 py-0.5 text-center outline-none ${className || ''}`}
+          style={{
+            width: Math.max(text.length * 10 + 20, 60),
+            ...labelStyleToCSS(labelStyle),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
     )
   }
 
   return (
     <span
       className={`cursor-text ${className || ''}`}
+      style={labelStyleToCSS(labelStyle)}
       onDoubleClick={() => { pushHistory(); setEditing(true) }}
       title="双击编辑"
     >
@@ -251,7 +490,15 @@ function EditableLabel({
 
 /** ---- 节点辅助组件：红旗 + 备注图标 ---- */
 
-type NodeData = { label: string; flag?: 'red' | 'green' | 'blue'; note?: string; level?: number; expanded?: boolean; link?: { url: string; title?: string }; image?: string }
+export type LabelStyle = {
+  fontFamily?: string
+  fontSize?: number
+  bold?: boolean
+  italic?: boolean
+  color?: string
+}
+
+type NodeData = { label: string; flag?: 'red' | 'green' | 'blue'; note?: string; level?: number; expanded?: boolean; link?: { url: string; title?: string }; image?: string; labelStyle?: LabelStyle }
 
 const flagColors: Record<string, string> = { red: 'text-red-500', green: 'text-green-500', blue: 'text-blue-500' }
 
@@ -419,6 +666,10 @@ function EndNode({ id, data }: { id: string; data: NodeData }) {
   )
 }
 
+// 菱形 SVG 转 data URI 背景（避免 clip-path 裁文字 / inline SVG 在 html-to-image 中异常）
+const diamondBg =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='70'%3E%3Cpolygon points='50,1 99,35 50,69 1,35' fill='%23fbbf24' fill-opacity='0.15' stroke='%23ca8a04' stroke-width='2'/%3E%3C/svg%3E\")"
+
 function DiamondNode({ id, data }: { id: string; data: NodeData }) {
   return (
     <div
@@ -426,19 +677,11 @@ function DiamondNode({ id, data }: { id: string; data: NodeData }) {
       style={{
         width: 100,
         height: 70,
-        background: 'rgba(251, 191, 36, 0.15)',
-        clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+        backgroundImage: diamondBg,
+        backgroundSize: '100% 100%',
+        backgroundRepeat: 'no-repeat',
       }}
     >
-      {/* 内部菱形边框 */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'transparent',
-          clipPath: 'polygon(50% 12%, 88% 50%, 50% 88%, 12% 50%)',
-          border: '2px solid rgb(202, 138, 4)',
-        }}
-      />
       <Handle type="target" position={Position.Top} className="!bg-yellow-500 !w-2.5 !h-2.5" />
       <span className="relative z-10 flex items-center gap-1">
         <NodeFlag data={data} />
@@ -509,7 +752,7 @@ function MindMapNode({ id, data }: { id: string; data: NodeData }) {
         <div className="flex items-center justify-between gap-1 px-2 py-1">
           <div className="flex items-center gap-1 min-w-0">
             <NodeFlag data={data} />
-            <span className="font-medium whitespace-nowrap truncate">
+            <span className="font-medium whitespace-nowrap">
               <EditableLabel nodeId={id} value={data.label} placeholder="分支" />
             </span>
           </div>
@@ -757,6 +1000,7 @@ export default function Canvas({
   const storeNodes = useDiagramStore((s) => s.nodes)
   const storeEdges = useDiagramStore((s) => s.edges)
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+  const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
   const noteEditingNodeId = useDiagramStore((s) => s.noteEditingNodeId)
   const setNoteEditingNodeId = useDiagramStore((s) => s.setNoteEditingNodeId)
   const pushHistory = useDiagramStore((s) => s.pushHistory)
@@ -914,6 +1158,60 @@ export default function Canvas({
     [screenToFlowPosition, onNodesChange, isMindMap]
   )
 
+  // 节点对齐
+  const selectedNodes = visibleNodes.filter((n) => n.selected)
+  const canAlign = selectedNodes.length >= 2
+
+  const alignNodes = useCallback((dir: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => {
+    if (selectedNodes.length < 2) return
+    pushHistory()
+
+    // 带宽高的节点信息
+    const bounds = selectedNodes.map((n) => ({
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      w: n.measured?.width ?? n.width ?? 0,
+      h: n.measured?.height ?? n.height ?? 0,
+    }))
+
+    const leftEdges = bounds.map((b) => b.x)
+    const rightEdges = bounds.map((b) => b.x + b.w)
+    const topEdges = bounds.map((b) => b.y)
+    const bottomEdges = bounds.map((b) => b.y + b.h)
+
+    const minLeft = Math.min(...leftEdges)
+    const maxRight = Math.max(...rightEdges)
+    const minTop = Math.min(...topEdges)
+    const maxBottom = Math.max(...bottomEdges)
+
+    const centerH = (minLeft + maxRight) / 2
+    const centerV = (minTop + maxBottom) / 2
+
+    const changes = bounds.map((b) => {
+      let { x, y } = b
+      if (dir === 'left') x = minLeft
+      else if (dir === 'right') x = maxRight - b.w
+      else if (dir === 'centerH') x = centerH - b.w / 2
+      else if (dir === 'top') y = minTop
+      else if (dir === 'bottom') y = maxBottom - b.h
+      else if (dir === 'centerV') y = centerV - b.h / 2
+      return { id: b.id, type: 'position' as const, position: { x, y } }
+    })
+    onNodesChange(changes)
+
+    // 清除与选中节点相关的连线弯折点（节点移动后旧 bendPoint 会错位）
+    const selectedIds = new Set(bounds.map((b) => b.id))
+    storeEdges.forEach((e) => {
+      if (selectedIds.has(e.source) || selectedIds.has(e.target)) {
+        const data = e.data as { bendPoint?: unknown } | undefined
+        if (data?.bendPoint) {
+          updateEdgeData(e.id, { bendPoint: undefined })
+        }
+      }
+    })
+  }, [selectedNodes, pushHistory, onNodesChange, storeEdges, updateEdgeData])
+
   return (
     <>
     <ReactFlow
@@ -922,7 +1220,7 @@ export default function Canvas({
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
-      onNodeContextMenu={onNodeContextMenu}
+      onNodeContextMenu={isMindMap ? onNodeContextMenu : undefined}
       onDragOver={onDragOver}
       onDrop={onDrop}
       nodeTypes={nodeTypes}
@@ -940,6 +1238,8 @@ export default function Canvas({
       nodesConnectable={!isMindMap}
       elementsSelectable={true}
       deleteKeyCode={isMindMap ? null : 'Backspace'}
+      selectionKeyCode="Shift"
+      multiSelectionKeyCode={['Meta', 'Control']}
     >
       <Background color="#333" gap={20} />
       <MiniMap
@@ -948,6 +1248,32 @@ export default function Canvas({
         className="!bg-gray-900 !border-gray-700"
       />
     </ReactFlow>
+
+    {/* 节点对齐工具栏（仅流程图模式，选中 ≥2 节点时浮现） */}
+    {canAlign && !isMindMap && (
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-gray-800 border border-gray-600 rounded-lg px-1.5 py-1 shadow-xl">
+        <span className="text-xs text-gray-500 px-1">对齐</span>
+        <button onClick={() => alignNodes('left')} title="左对齐" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignStartVertical className="w-4 h-4" />
+        </button>
+        <button onClick={() => alignNodes('centerH')} title="水平居中" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignCenterVertical className="w-4 h-4" />
+        </button>
+        <button onClick={() => alignNodes('right')} title="右对齐" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignEndVertical className="w-4 h-4" />
+        </button>
+        <div className="w-px h-5 bg-gray-600 mx-0.5" />
+        <button onClick={() => alignNodes('top')} title="顶对齐" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignStartHorizontal className="w-4 h-4" />
+        </button>
+        <button onClick={() => alignNodes('centerV')} title="垂直居中" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignCenterHorizontal className="w-4 h-4" />
+        </button>
+        <button onClick={() => alignNodes('bottom')} title="底对齐" className="p-1.5 hover:bg-gray-700 rounded text-gray-300 transition-colors">
+          <AlignEndHorizontal className="w-4 h-4" />
+        </button>
+      </div>
+    )}
 
     {/* 右键菜单 */}
     {contextMenu && (

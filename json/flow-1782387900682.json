@@ -2,13 +2,13 @@
   "id": "flow-1782387900682",
   "name": "流程图",
   "createdAt": "2026-06-26T04:58:46.576Z",
-  "updatedAt": "2026-07-01T08:11:19.322Z",
+  "updatedAt": "2026-07-02T02:43:09.955Z",
   "nodes": [
     {
       "id": "node-1782387738895-8vosr",
       "type": "start",
       "position": {
-        "x": 759,
+        "x": 761.6421031229803,
         "y": -47
       },
       "data": {
@@ -25,15 +25,21 @@
       "id": "node-1782387745022-joa91",
       "type": "default",
       "position": {
-        "x": 733.5,
+        "x": 736.6421031229803,
         "y": 31.5
       },
       "data": {
-        "label": "a = 2"
+        "label": "a = 2",
+        "labelStyle": {
+          "fontSize": 16,
+          "bold": true,
+          "italic": true,
+          "color": "#93c5fd"
+        }
       },
       "measured": {
         "width": 150,
-        "height": 38
+        "height": 41
       },
       "selected": false,
       "dragging": false
@@ -42,11 +48,14 @@
       "id": "node-1782387753584-ty713",
       "type": "diamond",
       "position": {
-        "x": 756.5,
+        "x": 761.6421031229803,
         "y": 111
       },
       "data": {
-        "label": "a > 2"
+        "label": "a > 2",
+        "labelStyle": {
+          "color": "#86efac"
+        }
       },
       "measured": {
         "width": 100,
@@ -59,7 +68,7 @@
       "id": "node-1782387770379-ywjfu",
       "type": "end",
       "position": {
-        "x": 789.7842062459606,
+        "x": 761.6421031229803,
         "y": 251.28838124992376
       },
       "data": {
@@ -86,7 +95,8 @@
       },
       "source": "node-1782387738895-8vosr",
       "target": "node-1782387745022-joa91",
-      "id": "xy-edge__node-1782387738895-8vosr-node-1782387745022-joa91"
+      "id": "xy-edge__node-1782387738895-8vosr-node-1782387745022-joa91",
+      "selected": false
     },
     {
       "type": "smoothstep",
@@ -100,7 +110,8 @@
       },
       "source": "node-1782387745022-joa91",
       "target": "node-1782387753584-ty713",
-      "id": "xy-edge__node-1782387745022-joa91-node-1782387753584-ty713"
+      "id": "xy-edge__node-1782387745022-joa91-node-1782387753584-ty713",
+      "selected": false
     },
     {
       "type": "custom",
@@ -116,7 +127,9 @@
       },
       "source": "node-1782387753584-ty713",
       "target": "node-1782387770379-ywjfu",
-      "id": "xy-edge__node-1782387753584-ty713-node-1782387770379-ywjfu"
+      "id": "xy-edge__node-1782387753584-ty713-node-1782387770379-ywjfu",
+      "selected": false,
+      "data": {}
     },
     {
       "type": "custom",
@@ -136,8 +149,8 @@
       "id": "xy-edge__node-1782387753584-ty713left-node-1782387745022-joa91",
       "data": {
         "bendPoint": {
-          "x": 696.1421031229803,
-          "y": 77.64419062496188
+          "x": 684.1421031229803,
+          "y": 66.14419062496188
         }
       },
       "selected": false
