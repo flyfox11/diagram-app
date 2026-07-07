@@ -38,10 +38,9 @@ export async function listDiagrams(
     files
       .filter((f) => f.name.endsWith('.json'))
       .map(async (file) => {
-        const downloadUrl = file.download_url
-          ? `${file.download_url}${file.download_url.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`
-          : `${API_BASE}/repos/${config.owner}/${config.repo}/raw/json/${file.name}?ref=${config.branch}&access_token=${encodeURIComponent(token)}`
-        const data = await fetch(downloadUrl).then((r) => r.json())
+        // 统一使用 Gitee API raw 端点，避免 download_url 的 302 重定向丢失 access_token
+        const rawUrl = `${API_BASE}/repos/${config.owner}/${config.repo}/raw/json/${file.name}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
+        const data = await fetch(rawUrl).then((r) => r.json())
         return {
           id: data.id || file.name.replace('.json', ''),
           name: data.name || '未命名',
