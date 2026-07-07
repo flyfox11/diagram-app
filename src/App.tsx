@@ -1,20 +1,13 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
+import { useState } from 'react'
 import { useSettingsStore } from '@/store/settings-store'
+import TokenDialog from '@/components/Settings/TokenDialog'
 import HomePage from '@/pages/HomePage'
 import EditorPage from '@/pages/EditorPage'
-import SettingsDialog from '@/components/Settings/TokenDialog'
-import { useState, useEffect } from 'react'
 
 export default function App() {
   const isConfigured = useSettingsStore((s) => s.isConfigured)
-  const [showSettings, setShowSettings] = useState(false)
-
-  useEffect(() => {
-    // dev 模式下不强制弹出设置
-    if (!import.meta.env.DEV && !isConfigured) {
-      setShowSettings(true)
-    }
-  }, [isConfigured])
+  const [showStorageConfig, setShowStorageConfig] = useState(false)
 
   return (
     <HashRouter>
@@ -23,22 +16,22 @@ export default function App() {
           <Route
             path="/"
             element={
-              <HomePage onOpenSettings={() => setShowSettings(true)} />
+              <HomePage onOpenStorageConfig={() => setShowStorageConfig(true)} />
             }
           />
           <Route
             path="/editor/:id"
             element={
-              <EditorPage onOpenSettings={() => setShowSettings(true)} />
+              <EditorPage onOpenStorageConfig={() => setShowStorageConfig(true)} />
             }
           />
-          <Route path="/editor/new" element={<EditorPage onOpenSettings={() => setShowSettings(true)} />} />
+          <Route path="/editor/new" element={<EditorPage onOpenStorageConfig={() => setShowStorageConfig(true)} />} />
         </Routes>
 
-        {showSettings && (
-          <SettingsDialog
+        {showStorageConfig && (
+          <TokenDialog
             onClose={() => {
-              setShowSettings(false)
+              setShowStorageConfig(false)
             }}
           />
         )}

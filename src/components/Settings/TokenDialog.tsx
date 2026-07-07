@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Key, FolderGit2, FlaskConical } from 'lucide-react'
+import { X, Key, FolderGit2, FlaskConical, Github, Cloud } from 'lucide-react'
 import { useSettingsStore } from '@/store/settings-store'
 
 const isDev = import.meta.env.DEV
@@ -17,8 +17,10 @@ interface TokenDialogProps {
 
 export default function TokenDialog({ onClose }: TokenDialogProps) {
   const { settings, setToken, setRepoConfig } = useSettingsStore()
+  const provider = settings.repoConfig.provider
+  const isGitee = provider === 'gitee'
 
-  const [token, setTokenLocal] = useState(settings.githubToken || (isDev ? DEV_DEFAULTS.token : ''))
+  const [token, setTokenLocal] = useState(settings.token || (isDev ? DEV_DEFAULTS.token : ''))
   const [owner, setOwner] = useState(settings.repoConfig.owner || (isDev ? DEV_DEFAULTS.owner : ''))
   const [repo, setRepo] = useState(settings.repoConfig.repo || (isDev ? DEV_DEFAULTS.repo : ''))
   const [branch, setBranch] = useState(settings.repoConfig.branch || (isDev ? DEV_DEFAULTS.branch : ''))
@@ -38,6 +40,13 @@ export default function TokenDialog({ onClose }: TokenDialogProps) {
     }, 800)
   }
 
+  const providerLabel = isGitee ? 'Gitee' : 'GitHub'
+  const tokenLabel = isGitee ? 'Gitee 私人令牌' : 'GitHub Personal Access Token'
+  const tokenPlaceholder = isGitee ? 'xxxxxxxxxxxxxxxx' : 'ghp_xxxxxxxxxxxx'
+  const tokenHint = isGitee
+    ? '在 Gitee 设置 → 私人令牌 中生成'
+    : '需要 Fine-grained token，权限选择 Contents: Read and Write'
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
@@ -45,8 +54,12 @@ export default function TokenDialog({ onClose }: TokenDialogProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
-              <Key className="w-5 h-5 text-blue-400" />
-              配置 GitHub 连接
+              {isGitee ? (
+                <Cloud className="w-5 h-5 text-orange-400" />
+              ) : (
+                <Github className="w-5 h-5 text-blue-400" />
+              )}
+              配置 {providerLabel} 连接
             </h2>
             {isDev && (
               <span className="flex items-center gap-1 px-2 py-0.5 text-xs bg-amber-900/40 border border-amber-700/50 text-amber-300 rounded-md">
@@ -68,13 +81,13 @@ export default function TokenDialog({ onClose }: TokenDialogProps) {
           {/* Token */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              GitHub Personal Access Token
+              {tokenLabel}
             </label>
             <input
               type={isDev ? 'text' : 'password'}
               value={token}
               onChange={(e) => setTokenLocal(e.target.value)}
-              placeholder="ghp_xxxxxxxxxxxx"
+              placeholder={tokenPlaceholder}
               className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
             {isDev ? (
@@ -83,7 +96,7 @@ export default function TokenDialog({ onClose }: TokenDialogProps) {
               </p>
             ) : (
               <p className="mt-1.5 text-xs text-gray-500">
-                需要 Fine-grained token，权限选择 Contents: Read and Write
+                {tokenHint}
               </p>
             )}
           </div>

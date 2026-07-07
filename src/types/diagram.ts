@@ -20,8 +20,12 @@ export interface DiagramData extends DiagramMeta {
   diagramType?: 'flowchart' | 'mindmap'
 }
 
-/** GitHub 仓库配置 */
+/** 存储平台 */
+export type StorageProvider = 'github' | 'gitee'
+
+/** 仓库配置 */
 export interface RepoConfig {
+  provider: StorageProvider
   owner: string
   repo: string
   branch: string
@@ -29,6 +33,8 @@ export interface RepoConfig {
 
 /** 应用全局设置 */
 export interface AppSettings {
-  githubToken: string
+  token: string
   repoConfig: RepoConfig
+  autoSave: boolean
 }
+

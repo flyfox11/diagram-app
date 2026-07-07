@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AppSettings, RepoConfig } from '@/types/diagram'
+import type { AppSettings, RepoConfig, StorageProvider } from '@/types/diagram'
 
 const DEFAULT_REPO: RepoConfig = {
+  provider: 'github',
   owner: '',
   repo: '',
   branch: 'main',
@@ -13,6 +14,8 @@ interface SettingsState {
   isConfigured: boolean
   setToken: (token: string) => void
   setRepoConfig: (config: Partial<RepoConfig>) => void
+  setProvider: (provider: StorageProvider) => void
+  setAutoSave: (enabled: boolean) => void
   clearSettings: () => void
 }
 
@@ -20,8 +23,9 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       settings: {
-        githubToken: '',
+        token: '',
         repoConfig: { ...DEFAULT_REPO },
+        autoSave: false,
       },
       isConfigured: false,
 
@@ -29,7 +33,7 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => {
           const newSettings = {
             ...state.settings,
-            githubToken: token,
+            token,
           }
           return {
             settings: newSettings,
@@ -43,13 +47,28 @@ export const useSettingsStore = create<SettingsState>()(
           const newSettings = { ...state.settings, repoConfig: newConfig }
           return {
             settings: newSettings,
-            isConfigured: !!(newSettings.githubToken && newConfig.owner && newConfig.repo),
+            isConfigured: !!(newSettings.token && newConfig.owner && newConfig.repo),
           }
         }),
 
+      setProvider: (provider: StorageProvider) =>
+        set((state) => {
+          const newConfig = { ...state.settings.repoConfig, provider }
+          const newSettings = { ...state.settings, repoConfig: newConfig }
+          return {
+            settings: newSettings,
+            isConfigured: !!(newSettings.token && newConfig.owner && newConfig.repo),
+          }
+        }),
+
+      setAutoSave: (enabled: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, autoSave: enabled },
+        })),
+
       clearSettings: () =>
         set({
-          settings: { githubToken: '', repoConfig: { ...DEFAULT_REPO } },
+          settings: { token: '', repoConfig: { ...DEFAULT_REPO }, autoSave: false },
           isConfigured: false,
         }),
     }),

@@ -32,6 +32,8 @@ interface DiagramState {
   loadDiagram: (data: DiagramData) => void
   updateNodes: (nodesOrUpdater: NodeUpdater) => void
   updateEdges: (edgesOrUpdater: EdgeUpdater) => void
+  updateNodesSilent: (nodesOrUpdater: NodeUpdater) => void
+  updateEdgesSilent: (edgesOrUpdater: EdgeUpdater) => void
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => void
   updateEdgeData: (edgeId: string, data: Record<string, unknown>) => void
   addNode: (node: Node) => void
@@ -58,6 +60,7 @@ interface DiagramState {
   setSaving: (saving: boolean) => void
   setSaveError: (error: string | null) => void
   markClean: () => void
+  setCurrentFile: (id: string) => void
   resetEditor: () => void
 }
 
@@ -117,6 +120,22 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
           ? edgesOrUpdater(state.edges)
           : edgesOrUpdater,
       isDirty: true,
+    })),
+
+  updateNodesSilent: (nodesOrUpdater) =>
+    set((state) => ({
+      nodes:
+        typeof nodesOrUpdater === 'function'
+          ? nodesOrUpdater(state.nodes)
+          : nodesOrUpdater,
+    })),
+
+  updateEdgesSilent: (edgesOrUpdater) =>
+    set((state) => ({
+      edges:
+        typeof edgesOrUpdater === 'function'
+          ? edgesOrUpdater(state.edges)
+          : edgesOrUpdater,
     })),
 
   addNode: (node) =>
@@ -322,6 +341,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
   setSaving: (saving) => set({ saving }),
   setSaveError: (error) => set({ saveError: error }),
   markClean: () => set({ isDirty: false }),
+  setCurrentFile: (id) => set({ currentFile: id }),
 
   resetEditor: () =>
     set({

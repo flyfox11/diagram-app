@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   FolderOpen,
-  Settings,
   RefreshCw,
   Trash2,
   Workflow,
@@ -15,15 +14,16 @@ import {
 import JSZip from 'jszip'
 import { useDiagramStore } from '@/store/diagram-store'
 import { useSettingsStore } from '@/store/settings-store'
+import SettingsDropdown from '@/components/Settings/SettingsDropdown'
 import { listDiagrams, deleteDiagram, getDiagram, saveDiagram } from '@/services/api'
 import type { DiagramData } from '@/types/diagram'
 import { useEffect, useState, useRef } from 'react'
 
 interface HomePageProps {
-  onOpenSettings: () => void
+  onOpenStorageConfig: () => void
 }
 
-export default function HomePage({ onOpenSettings }: HomePageProps) {
+export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
   const navigate = useNavigate()
   const {
     fileList,
@@ -66,7 +66,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
     setExporting(file.id)
     try {
       const data = await getDiagram(
-        settings.githubToken,
+        settings.token,
         settings.repoConfig,
         `${file.id}.json`
       )
@@ -107,7 +107,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
         updatedAt: now,
       }
       await saveDiagram(
-        settings.githubToken,
+        settings.token,
         settings.repoConfig,
         `${newId}.json`,
         diagramData
@@ -175,7 +175,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
       const zip = new JSZip()
       for (const file of fileList) {
         const data = await getDiagram(
-          settings.githubToken,
+          settings.token,
           settings.repoConfig,
           `${file.id}.json`
         )
@@ -203,7 +203,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
     setFileListError(null)
     try {
       const list = await listDiagrams(
-        settings.githubToken,
+        settings.token,
         settings.repoConfig
       )
       setFileList(list)
@@ -229,7 +229,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
     setDeleting(filename)
     try {
       await deleteDiagram(
-        settings.githubToken,
+        settings.token,
         settings.repoConfig,
         filename
       )
@@ -245,11 +245,11 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <Settings className="w-16 h-16 mx-auto mb-4 text-gray-500" />
+          <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-500" />
           <h1 className="text-2xl font-bold mb-2 text-gray-200">欢迎使用流程图编辑器</h1>
-          <p className="text-gray-400 mb-6">请先配置 GitHub Token 和仓库信息</p>
+          <p className="text-gray-400 mb-6">请先配置存储位置和 Token</p>
           <button
-            onClick={onOpenSettings}
+            onClick={onOpenStorageConfig}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
             开始配置
@@ -304,13 +304,7 @@ export default function HomePage({ onOpenSettings }: HomePageProps) {
             />
             刷新
           </button>
-          <button
-            onClick={onOpenSettings}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            设置
-          </button>
+          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} />
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowNewMenu(!showNewMenu)}

@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { memo, useCallback, useState, useRef, useEffect, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ReactFlow,
@@ -255,11 +255,12 @@ function EditableLabel({
   }, [editing])
 
   // 点击外部退出编辑（替代 onBlur，避免工具栏交互触发提交）
+  const commitRef = useRef<() => void>(() => {})
   useEffect(() => {
     if (!editing) return
     const onPointerDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as unknown as globalThis.Node)) {
-        commit()
+        commitRef.current()
       }
     }
     // 用 mousedown + 延迟，让 select 等控件先响应
@@ -275,6 +276,7 @@ function EditableLabel({
     setEditing(false)
     setShowToolbar(false)
   }
+  commitRef.current = commit
 
   const cancel = () => {
     setText(value)
@@ -984,7 +986,7 @@ export interface CanvasProps {
 
 /** ---- Canvas 组件 ---- */
 
-export default function Canvas({
+export default memo(function Canvas({
   nodes,
   edges,
   defaultViewport,
@@ -992,7 +994,19 @@ export default function Canvas({
   onEdgesChange,
   onConnect,
 }: CanvasProps) {
-  const { screenToFlowPosition, setNodes } = useReactFlow()
+  const { screenToFlowPosition, setNodes, setViewport: rfSetViewport, getViewport: rfGetViewport } = useReactFlow()
+  // 视口安全网：vpRef 始终跟踪最新视口，每次渲染后检测并纠正偏移
+  const setStoreViewport = useDiagramStore((s) => s.setViewport)
+  const vpRef = useRef(defaultViewport)
+  useEffect(() => { vpRef.current = defaultViewport }, [defaultViewport])
+  // 每次渲染后检查：如果 ReactFlow 内部视口与 vpRef 不一致（被重渲染重置），立即恢复
+  useEffect(() => {
+    const cur = rfGetViewport()
+    const tgt = vpRef.current
+    if (cur.x !== tgt.x || cur.y !== tgt.y || cur.zoom !== tgt.zoom) {
+      rfSetViewport(tgt, { duration: 0 })
+    }
+  })
   const diagramType = useDiagramStore((s) => s.diagramType)
   const addChildNode = useDiagramStore((s) => s.addChildNode)
   const addSiblingNode = useDiagramStore((s) => s.addSiblingNode)
@@ -1226,7 +1240,7 @@ export default function Canvas({
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultViewport={defaultViewport}
-      fitView
+      onViewportChange={(vp) => { vpRef.current = vp; setStoreViewport(vp) }}
       className="bg-gray-950"
       connectionLineStyle={isMindMap ? { display: 'none' } : { stroke: '#6b7280', strokeWidth: 2 }}
       connectionLineType={ConnectionLineType.SmoothStep}
@@ -1395,5 +1409,5 @@ export default function Canvas({
     )}
     </>
   )
-}
+})
 

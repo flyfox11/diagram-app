@@ -1,14 +1,16 @@
 /**
- * 统一 API 层：开发模式走本地 Vite 中间件，生产模式走 GitHub REST API。
+ * 统一 API 层：开发模式走本地 Vite 中间件，生产模式按 provider 走 GitHub/Gitee REST API。
  * import.meta.env.DEV 是 Vite 编译时常量，未使用的分支会被 tree-shake。
  */
 
 import type { DiagramData, DiagramMeta, RepoConfig } from '@/types/diagram'
 import * as githubApi from './github-api'
+import * as giteeApi from './gitee-api'
 import * as localApi from './local-storage'
 
-// 开发模式下是否需要 GitHub 配置？不需要，直接走本地文件。
-// 但为了保持接口一致，这里仍接收可选参数（生产模式必需）。
+function getRemoteApi(config: RepoConfig) {
+  return config.provider === 'gitee' ? giteeApi : githubApi
+}
 
 export async function listDiagrams(
   token?: string,
@@ -17,7 +19,7 @@ export async function listDiagrams(
   if (import.meta.env.DEV) {
     return localApi.listDiagrams()
   }
-  return githubApi.listDiagrams(token!, config!)
+  return getRemoteApi(config!).listDiagrams(token!, config!)
 }
 
 export async function getDiagram(
@@ -28,7 +30,7 @@ export async function getDiagram(
   if (import.meta.env.DEV) {
     return localApi.getDiagram(filename)
   }
-  return githubApi.getDiagram(token!, config!, filename)
+  return getRemoteApi(config!).getDiagram(token!, config!, filename)
 }
 
 export async function saveDiagram(
@@ -40,7 +42,7 @@ export async function saveDiagram(
   if (import.meta.env.DEV) {
     return localApi.saveDiagram(filename, data)
   }
-  return githubApi.saveDiagram(token!, config!, filename, data)
+  return getRemoteApi(config!).saveDiagram(token!, config!, filename, data)
 }
 
 export async function deleteDiagram(
@@ -51,5 +53,5 @@ export async function deleteDiagram(
   if (import.meta.env.DEV) {
     return localApi.deleteDiagram(filename)
   }
-  return githubApi.deleteDiagram(token!, config!, filename)
+  return getRemoteApi(config!).deleteDiagram(token!, config!, filename)
 }

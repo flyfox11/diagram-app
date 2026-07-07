@@ -2,7 +2,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Save,
-  Settings,
   CheckCircle,
   XCircle,
   Network,
@@ -31,13 +30,15 @@ import { exportElementAsPng } from '@/utils/export-png'
 import Canvas from '@/components/Editor/Canvas'
 import NodePalette from '@/components/Editor/NodePalette'
 import OutlineView from '@/components/Editor/OutlineView'
+import SettingsDropdown from '@/components/Settings/SettingsDropdown'
+import { getDescendantIds } from '@/utils/mindmap-layout'
 import { useEffect, useCallback, useState, useRef } from 'react'
 
 interface EditorPageProps {
-  onOpenSettings: () => void
+  onOpenStorageConfig: () => void
 }
 
-export default function EditorPage({ onOpenSettings }: EditorPageProps) {
+export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -58,9 +59,12 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     setName,
     updateNodes,
     updateEdges,
+    updateNodesSilent,
+    updateEdgesSilent,
     setSaving,
     setSaveError,
     markClean,
+    setCurrentFile,
     resetEditor,
     setDiagramType,
     viewMode,
@@ -82,7 +86,8 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   }
 
   // 加载已有文件（dev 模式不需要 isConfigured）
-  const [diagramLoading, setDiagramLoading] = useState(false)
+  // 刷新已有图表时首帧即显示遮罩，避免画布在 {x:0,y:0,zoom:1} 闪现
+  const [diagramLoading, setDiagramLoading] = useState(() => !!id && id !== 'new')
 
   useEffect(() => {
     if (!id || id === 'new') {
@@ -103,7 +108,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     setDiagramLoading(true)
 
     const filename = `${id}.json`
-    getDiagram(settings.githubToken, settings.repoConfig, filename)
+    getDiagram(settings.token, settings.repoConfig, filename)
       .then((data) => {
         loadDiagram(data)
         setDiagramLoading(false)
@@ -114,7 +119,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
       })
   }, [id, isConfigured, searchParams, setDiagramType])
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (silent = false) => {
     if (!import.meta.env.DEV && !isConfigured) return
     setSaving(true)
     setSaveError(null)
@@ -123,7 +128,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     const filename = `${fileId}.json`
 
     try {
-      await saveDiagram(settings.githubToken, settings.repoConfig, filename, {
+      await saveDiagram(settings.token, settings.repoConfig, filename, {
         id: fileId,
         name: currentName || '未命名',
         createdAt: createdAt || new Date().toISOString(),
@@ -134,14 +139,23 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
         diagramType,
       })
       markClean()
-      showToast('success', '保存成功')
+      if (!silent) {
+        showToast('success', '保存成功')
+      }
       if (!currentFile) {
-        navigate(`/editor/${fileId}`, { replace: true })
+        if (silent) {
+          // 自动保存：直接设置 currentFile，不触发导航重新加载
+          setCurrentFile(fileId)
+        } else {
+          navigate(`/editor/${fileId}`, { replace: true })
+        }
       }
     } catch (e) {
       const errMsg = (e as Error).message
       setSaveError(errMsg)
-      showToast('error', `保存失败: ${errMsg}`)
+      if (!silent) {
+        showToast('error', `保存失败: ${errMsg}`)
+      }
     } finally {
       setSaving(false)
     }
@@ -173,6 +187,17 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [handleSave, undo, redo])
+
+  // 自动保存：开启后 isDirty 变化时延迟 2 秒自动保存
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => {
+    if (!settings.autoSave || !isDirty) return
+    clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      handleSave(true)
+    }, 2000)
+    return () => clearTimeout(autoSaveTimer.current)
+  }, [isDirty, settings.autoSave, handleSave])
 
   // 导出 JSON
   const handleExportJson = useCallback(() => {
@@ -206,6 +231,12 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
+  // 稳定化 onReady，避免 PngExportBridge 的 useEffect 每次渲染都执行
+  const handlePngReady = useCallback((fn: (() => Promise<void>) | null) => {
+    exportPngRef.current = fn
+    setPngReady(!!fn)
+  }, [])
+
   const handleExportPng = useCallback(async () => {
     const fn = exportPngRef.current
     if (!fn) return
@@ -235,14 +266,56 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   }, [showExportMenu])
 
   // React Flow 变更处理
+  // dimensions/select 变化用 silent 更新（不标记 isDirty），避免加载后即触发自动保存
+  // 思维导图模式：拖动节点时整个子树联动跟随
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
       if (changes.some((c) => c.type === 'remove')) {
         pushHistory()
       }
-      updateNodes((nds) => applyNodeChanges(changes, nds))
+
+      let allChanges = changes
+
+      // 思维导图模式：子树联动——拖动节点时后代同步平移
+      const { diagramType: dt, nodes: curNodes, edges: curEdges } = useDiagramStore.getState()
+      if (dt === 'mindmap') {
+        const movedIds = new Set(changes.filter((c) => c.type === 'position').map((c) => (c as { id: string }).id))
+        const extraChanges: typeof changes = []
+        for (const c of changes) {
+          if (c.type !== 'position' || !c.position) continue
+          const oldNode = curNodes.find((n) => n.id === c.id)
+          if (!oldNode) continue
+          const dx = c.position.x - oldNode.position.x
+          const dy = c.position.y - oldNode.position.y
+          if (dx === 0 && dy === 0) continue
+
+          // 获取所有后代，为每个后代注入同步位移
+          const descendantIds = getDescendantIds(c.id, curEdges)
+          for (const descId of descendantIds) {
+            if (descId === c.id) continue
+            if (movedIds.has(descId)) continue // 已被直接拖动，跳过
+            const descNode = curNodes.find((n) => n.id === descId)
+            if (!descNode) continue
+            extraChanges.push({
+              ...c,
+              id: descId,
+              position: { x: descNode.position.x + dx, y: descNode.position.y + dy },
+            } as typeof c)
+          }
+        }
+        if (extraChanges.length > 0) {
+          allChanges = [...changes, ...extraChanges]
+        }
+      }
+
+      const hasUserEdit = allChanges.some((c) => c.type === 'position' || c.type === 'remove' || c.type === 'add')
+      if (hasUserEdit) {
+        updateNodes((nds) => applyNodeChanges(allChanges, nds))
+      } else {
+        updateNodesSilent((nds) => applyNodeChanges(allChanges, nds))
+      }
     },
-    [updateNodes, pushHistory]
+    [updateNodes, updateNodesSilent, pushHistory]
   )
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -250,9 +323,14 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
       if (changes.some((c) => c.type === 'remove')) {
         pushHistory()
       }
-      updateEdges((eds) => applyEdgeChanges(changes, eds))
+      const hasUserEdit = changes.some((c) => c.type === 'remove')
+      if (hasUserEdit) {
+        updateEdges((eds) => applyEdgeChanges(changes, eds))
+      } else {
+        updateEdgesSilent((eds) => applyEdgeChanges(changes, eds))
+      }
     },
-    [updateEdges, pushHistory]
+    [updateEdges, updateEdgesSilent, pushHistory]
   )
 
   const onConnect: OnConnect = useCallback(
@@ -338,14 +416,23 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
           {saveError && (
             <span className="text-xs text-red-400 mr-2">{saveError}</span>
           )}
-          <button
-            onClick={handleSave}
-            disabled={saving || (!import.meta.env.DEV && !isConfigured)}
-            className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors text-sm"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? '保存中...' : '保存'}
-          </button>
+          {/* 保存按钮（手动保存模式时显示） */}
+          {!settings.autoSave && (
+            <button
+              onClick={() => handleSave()}
+              disabled={saving || (!import.meta.env.DEV && !isConfigured)}
+              className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-colors text-sm"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? '保存中...' : '保存'}
+            </button>
+          )}
+          {settings.autoSave && isDirty && (
+            <span className="text-xs text-amber-400 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+              自动保存中...
+            </span>
+          )}
 
           {/* 导出下拉菜单 */}
           <div className="relative" ref={exportMenuRef}>
@@ -379,12 +466,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
             )}
           </div>
 
-          <button
-            onClick={onOpenSettings}
-            className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} />
         </div>
       </div>
 
@@ -394,7 +476,7 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
           /* 目录模式 */
           <OutlineView />
         ) : (
-          <ReactFlowProvider>
+          <ReactFlowProvider key={id}>
             {/* 左侧节点面板（仅流程图模式） */}
             {diagramType === 'flowchart' && <NodePalette />}
 
@@ -409,15 +491,24 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
                 onConnect={onConnect}
               />
               {/* PNG 导出桥接：在 ReactFlowProvider 内部获取 fitView */}
-              <PngExportBridge onReady={(fn) => { exportPngRef.current = fn; setPngReady(!!fn) }} />
+              <PngExportBridge onReady={handlePngReady} />
               {/* 数据异步加载完成后自动 fitView */}
-              <FitViewOnLoad fileKey={currentFile} nodeCount={nodes.length} />
+              <FitViewOnLoad nodeCount={nodes.length} />
               {/* 加载遮罩：避免显示上一个图的残留内容 */}
               {diagramLoading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-950">
                   <div className="flex flex-col items-center gap-2 text-gray-500">
                     <div className="w-6 h-6 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
                     <span className="text-xs">加载中…</span>
+                  </div>
+                </div>
+              )}
+              {/* PNG 导出遮罩：隐藏导出时的视口变化 */}
+              {exportingPng && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center bg-gray-950/90">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <div className="w-6 h-6 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
+                    <span className="text-xs">导出中…</span>
                   </div>
                 </div>
               )}
@@ -456,32 +547,30 @@ export default function EditorPage({ onOpenSettings }: EditorPageProps) {
   )
 }
 
-/** 数据加载后自动 fitView（解决异步加载时 fitView 对空节点执行的问题） */
-function FitViewOnLoad({ fileKey, nodeCount }: { fileKey: string | null; nodeCount: number }) {
+/** 数据加载后自动 fitView（仅在 ReactFlowProvider 因 key={id} 变化而 remount 时触发一次） */
+function FitViewOnLoad({ nodeCount }: { nodeCount: number }) {
   const { fitView, getNodes } = useReactFlow()
-  const fittedKey = useRef<string | null>(null)
+  const hasFitted = useRef(false)
 
   useEffect(() => {
-    // 只在 fileKey 变化且节点已加载时执行
-    if (fileKey === fittedKey.current) return
+    if (hasFitted.current) return
     if (nodeCount === 0) return
+    hasFitted.current = true
 
-    fittedKey.current = fileKey
-    // 等 React Flow 渲染完节点再 fitView
     const timer = setTimeout(() => {
       if (getNodes().length > 0) {
         fitView({ padding: 0.1, duration: 300 })
       }
     }, 80)
     return () => clearTimeout(timer)
-  }, [fileKey, nodeCount, fitView, getNodes])
+  }, [nodeCount, fitView, getNodes])
 
   return null
 }
 
 /** PNG 导出桥接组件：在 ReactFlowProvider 内部使用 useReactFlow */
 function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | null) => void }) {
-  const { setViewport, getNodes, getNodesBounds, getEdges, fitView } = useReactFlow()
+  const { setViewport, getViewport, getNodes, getNodesBounds, getEdges } = useReactFlow()
   const currentName = useDiagramStore((s) => s.currentName)
 
   useEffect(() => {
@@ -523,7 +612,8 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
         2 // 最大 2 倍
       )
 
-      // 4. 直接设置 viewport，让节点左上角对齐到 (padding, padding)
+      // 4. 保存原始 viewport，然后设置导出 viewport
+      const originalViewport = getViewport()
       setViewport({
         x: -bounds.x * zoom + padding,
         y: -bounds.y * zoom + padding,
@@ -562,15 +652,15 @@ function PngExportBridge({ onReady }: { onReady: (fn: (() => Promise<void>) | nu
           height: captureHeight,
         })
       } finally {
-        // 8. 恢复
+        // 8. 恢复原始 viewport（不用 fitView，避免画布偏移）
         for (const e of hidden) {
           e.style.visibility = ''
         }
-        fitView({ padding: 0.1, duration: 300 })
+        setViewport(originalViewport, { duration: 0 })
       }
     })
     return () => onReady(null)
-  }, [setViewport, getNodes, getNodesBounds, getEdges, fitView, currentName, onReady])
+  }, [setViewport, getViewport, getNodes, getNodesBounds, getEdges, currentName, onReady])
 
   return null
 }
