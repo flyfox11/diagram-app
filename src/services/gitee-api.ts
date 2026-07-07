@@ -90,8 +90,11 @@ export async function saveDiagram(
   try {
     const checkRes = await fetch(url, { headers: getHeaders(token) })
     if (checkRes.ok) {
-      const existing: { sha: string } = await checkRes.json()
-      sha = existing.sha
+      const existing = await checkRes.json()
+      // 确保响应中确实包含 sha 字段（空仓库时 Gitee 可能返回 200 但无 sha）
+      if (existing && typeof existing.sha === 'string' && existing.sha) {
+        sha = existing.sha
+      }
     }
   } catch {
     // 文件不存在，是新建
@@ -105,8 +108,9 @@ export async function saveDiagram(
   }
   if (sha) body.sha = sha
 
+  // Gitee API: POST 创建新文件，PUT 更新已有文件（需 sha）
   const res = await fetch(url, {
-    method: 'PUT',
+    method: sha ? 'PUT' : 'POST',
     headers: getHeaders(token),
     body: JSON.stringify(body),
   })
