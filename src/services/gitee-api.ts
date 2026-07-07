@@ -83,7 +83,7 @@ export async function saveDiagram(
   data: DiagramData
 ): Promise<void> {
   const path = `json/${filename}`
-  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?access_token=${encodeURIComponent(token)}`
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
 
   // 先尝试获取 sha（更新时需要）
   let sha: string | undefined
@@ -126,7 +126,7 @@ export async function deleteDiagram(
   filename: string
 ): Promise<void> {
   const path = `json/${filename}`
-  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?access_token=${encodeURIComponent(token)}`
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
 
   // 必须先获取 sha
   const checkRes = await fetch(url, { headers: getHeaders(token) })
