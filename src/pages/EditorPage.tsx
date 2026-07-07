@@ -42,7 +42,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { settings, isConfigured } = useSettingsStore()
+  const { settings, isConfigured, activeToken, activeRepoConfig } = useSettingsStore()
 
   const {
     currentFile,
@@ -108,7 +108,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     setDiagramLoading(true)
 
     const filename = `${id}.json`
-    getDiagram(settings.token, settings.repoConfig, filename)
+    getDiagram(activeToken, activeRepoConfig, filename)
       .then((data) => {
         loadDiagram(data)
         setDiagramLoading(false)
@@ -128,7 +128,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     const filename = `${fileId}.json`
 
     try {
-      await saveDiagram(settings.token, settings.repoConfig, filename, {
+      await saveDiagram(activeToken, activeRepoConfig, filename, {
         id: fileId,
         name: currentName || '未命名',
         createdAt: createdAt || new Date().toISOString(),
@@ -167,7 +167,8 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     viewport,
     diagramType,
     isConfigured,
-    settings,
+    activeToken,
+    activeRepoConfig,
   ])
 
   // Ctrl+S 保存 / Ctrl+Z 撤销 / Ctrl+Shift+Z 恢复
@@ -466,7 +467,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
             )}
           </div>
 
-          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} />
+          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} mode="editor" />
         </div>
       </div>
 

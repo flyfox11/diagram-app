@@ -23,7 +23,7 @@ export interface DiagramData extends DiagramMeta {
 /** 存储平台 */
 export type StorageProvider = 'github' | 'gitee'
 
-/** 仓库配置 */
+/** 仓库配置（API 层使用） */
 export interface RepoConfig {
   provider: StorageProvider
   owner: string
@@ -31,10 +31,19 @@ export interface RepoConfig {
   branch: string
 }
 
+/** 单个平台的连接配置 */
+export interface ProviderConfig {
+  token: string
+  owner: string
+  repo: string
+  branch: string
+}
+
 /** 应用全局设置 */
 export interface AppSettings {
-  token: string
-  repoConfig: RepoConfig
+  provider: StorageProvider
+  github: ProviderConfig
+  gitee: ProviderConfig
   autoSave: boolean
 }
 

@@ -33,7 +33,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
     setFileListLoading,
     setFileListError,
   } = useDiagramStore()
-  const { settings, isConfigured } = useSettingsStore()
+  const { settings, isConfigured, activeToken, activeRepoConfig } = useSettingsStore()
 
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showNewMenu, setShowNewMenu] = useState(false)
@@ -66,8 +66,8 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
     setExporting(file.id)
     try {
       const data = await getDiagram(
-        settings.token,
-        settings.repoConfig,
+        activeToken,
+        activeRepoConfig,
         `${file.id}.json`
       )
       const json = JSON.stringify(data, null, 2)
@@ -107,8 +107,8 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
         updatedAt: now,
       }
       await saveDiagram(
-        settings.token,
-        settings.repoConfig,
+        activeToken,
+        activeRepoConfig,
         `${newId}.json`,
         diagramData
       )
@@ -175,8 +175,8 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
       const zip = new JSZip()
       for (const file of fileList) {
         const data = await getDiagram(
-          settings.token,
-          settings.repoConfig,
+          activeToken,
+          activeRepoConfig,
           `${file.id}.json`
         )
         const name = (file.name || file.id).replace(/[\\/:*?"<>|]/g, '_')
@@ -203,8 +203,8 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
     setFileListError(null)
     try {
       const list = await listDiagrams(
-        settings.token,
-        settings.repoConfig
+        activeToken,
+        activeRepoConfig
       )
       setFileList(list)
     } catch (e) {
@@ -229,8 +229,8 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
     setDeleting(filename)
     try {
       await deleteDiagram(
-        settings.token,
-        settings.repoConfig,
+        activeToken,
+        activeRepoConfig,
         filename
       )
       await fetchList()
@@ -266,7 +266,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
         <div>
           <h1 className="text-2xl font-bold text-gray-100">流程图编辑器</h1>
           <p className="text-gray-400 text-sm mt-1">
-            {settings.repoConfig.owner}/{settings.repoConfig.repo} /json/
+            {activeRepoConfig.owner}/{activeRepoConfig.repo} /json/
           </p>
         </div>
         <div className="flex gap-2">
@@ -304,7 +304,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
             />
             刷新
           </button>
-          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} />
+          <SettingsDropdown onOpenStorageConfig={onOpenStorageConfig} mode="home" />
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowNewMenu(!showNewMenu)}

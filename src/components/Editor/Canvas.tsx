@@ -28,8 +28,57 @@ import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote
 /** ---- 工具函数 ---- */
 
 /**
- * 正交路径穿过弯折点（横平竖直）
- * 同向（都垂直/都水平）时用 5 段 S 形路由，避免弯折点偏出自然范围时产生多余线段
+ * 将连线端点向节点内部偏移，使路径延伸进节点背景下方，消除 handle 隐藏时的空隙
+ */
+function offsetIntoNode(x: number, y: number, pos: Position, offset = 3) {
+  switch (pos) {
+    case Position.Right: return { x: x - offset, y }
+    case Position.Left: return { x: x + offset, y }
+    case Position.Top: return { x, y: y + offset }
+    case Position.Bottom: return { x, y: y - offset }
+    default: return { x, y }
+  }
+}
+
+/**
+ * 将一组折线点转为带圆角的 SVG path（拐角用二次贝塞尔 Q 替代 L 硬折角）
+ */
+function roundedPath(points: Array<{ x: number; y: number }>, radius = 8): string {
+  if (points.length < 2) return ''
+  if (points.length === 2) return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`
+
+  let d = `M ${points[0].x},${points[0].y}`
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1]
+    const curr = points[i]
+    const next = points[i + 1]
+
+    const dist1 = Math.hypot(curr.x - prev.x, curr.y - prev.y)
+    const dist2 = Math.hypot(next.x - curr.x, next.y - curr.y)
+    const r = Math.min(radius, dist1 / 2, dist2 / 2)
+
+    if (r < 1) {
+      d += ` L ${curr.x},${curr.y}`
+      continue
+    }
+
+    const dx1 = (curr.x - prev.x) / dist1
+    const dy1 = (curr.y - prev.y) / dist1
+    const dx2 = (next.x - curr.x) / dist2
+    const dy2 = (next.y - curr.y) / dist2
+
+    d += ` L ${curr.x - dx1 * r},${curr.y - dy1 * r} Q ${curr.x},${curr.y} ${curr.x + dx2 * r},${curr.y + dy2 * r}`
+  }
+
+  const last = points[points.length - 1]
+  d += ` L ${last.x},${last.y}`
+  return d
+}
+
+/**
+ * 正交路径穿过弯折点（横平竖直 + 圆角）
+ * 参考 draw.io：路径实际经过弯折点，bx 和 by 两个坐标都生效
  */
 function getOrthogonalBentPath(
   sx: number, sy: number, sourcePos: Position,
@@ -39,23 +88,51 @@ function getOrthogonalBentPath(
   const srcV = sourcePos === Position.Top || sourcePos === Position.Bottom
   const tgtV = targetPos === Position.Top || targetPos === Position.Bottom
 
+  let pts: Array<{ x: number; y: number }>
+
   if (srcV && tgtV) {
-    // 都垂直：5 段 S 形，水平段在 y 中点，永不产生多余线
-    const midY1 = (sy + by) / 2
-    const midY2 = (by + ty) / 2
-    return `M ${sx},${sy} L ${sx},${midY1} L ${bx},${midY1} L ${bx},${midY2} L ${tx},${midY2} L ${tx},${ty}`
+    // 都垂直：5 段，路径经过弯折点
+    const midY = (by + ty) / 2
+    pts = [
+      { x: sx, y: sy },
+      { x: sx, y: by },
+      { x: bx, y: by },
+      { x: bx, y: midY },
+      { x: tx, y: midY },
+      { x: tx, y: ty },
+    ]
   } else if (!srcV && !tgtV) {
-    // 都水平：5 段 S 形，竖直段在 x 中点
-    const midX1 = (sx + bx) / 2
-    const midX2 = (bx + tx) / 2
-    return `M ${sx},${sy} L ${midX1},${sy} L ${midX1},${by} L ${midX2},${by} L ${midX2},${ty} L ${tx},${ty}`
+    // 都水平：5 段，路径经过弯折点
+    const midX = (bx + tx) / 2
+    pts = [
+      { x: sx, y: sy },
+      { x: bx, y: sy },
+      { x: bx, y: by },
+      { x: midX, y: by },
+      { x: midX, y: ty },
+      { x: tx, y: ty },
+    ]
   } else if (srcV && !tgtV) {
-    // 源垂直 → 目标水平：3 段折线（自然合理，不会多余）
-    return `M ${sx},${sy} L ${sx},${by} L ${tx},${by} L ${tx},${ty}`
+    // 源垂直 → 目标水平：4 段，路径经过弯折点
+    pts = [
+      { x: sx, y: sy },
+      { x: sx, y: by },
+      { x: bx, y: by },
+      { x: bx, y: ty },
+      { x: tx, y: ty },
+    ]
   } else {
-    // 源水平 → 目标垂直：3 段折线
-    return `M ${sx},${sy} L ${bx},${sy} L ${bx},${ty} L ${tx},${ty}`
+    // 源水平 → 目标垂直：4 段，路径经过弯折点
+    pts = [
+      { x: sx, y: sy },
+      { x: bx, y: sy },
+      { x: bx, y: by },
+      { x: tx, y: by },
+      { x: tx, y: ty },
+    ]
   }
+
+  return roundedPath(pts)
 }
 
 /** ---- 自定义连线组件（可拖拽弯折点） ---- */
@@ -84,25 +161,29 @@ function CustomEdge({
   const bend = (data?.bendPoint as BendPoint | undefined) ?? null
   const activeBend = dragPos ?? bend
 
+  // 端点向节点内部偏移，消除 handle 隐藏时的空隙
+  const src = offsetIntoNode(sourceX, sourceY, sourcePosition)
+  const tgt = offsetIntoNode(targetX, targetY, targetPosition)
+
   // 计算路径
   let path: string
   let handleX: number
   let handleY: number
 
   if (activeBend) {
-    // 正交路径穿过弯折点
+    // 正交路径穿过弯折点（draw.io 风格）
     path = getOrthogonalBentPath(
-      sourceX, sourceY, sourcePosition,
+      src.x, src.y, sourcePosition,
       activeBend.x, activeBend.y,
-      targetX, targetY, targetPosition
+      tgt.x, tgt.y, targetPosition
     )
     handleX = activeBend.x
     handleY = activeBend.y
   } else {
     // 默认 smoothstep，把手放在路径中点
     const [defaultPath, labelX, labelY] = getSmoothStepPath({
-      sourceX, sourceY, sourcePosition,
-      targetX, targetY, targetPosition,
+      sourceX: src.x, sourceY: src.y, sourcePosition,
+      targetX: tgt.x, targetY: tgt.y, targetPosition,
     })
     path = defaultPath
     handleX = labelX
@@ -819,9 +900,11 @@ function MindMapEdge({
   targetPosition,
   style,
 }: EdgeProps) {
+  const src = offsetIntoNode(sourceX, sourceY, sourcePosition)
+  const tgt = offsetIntoNode(targetX, targetY, targetPosition)
   const [path] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+    sourceX: src.x, sourceY: src.y, sourcePosition,
+    targetX: tgt.x, targetY: tgt.y, targetPosition,
   })
 
   return (

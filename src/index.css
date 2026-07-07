@@ -40,10 +40,11 @@
   display: none !important;
 }
 
-/* 连线点默认隐藏，hover/选中/连线中显示 */
+/* 连线点默认隐藏，hover/选中/连线中显示（z-index 确保覆盖在连线之上） */
 .react-flow__handle {
   opacity: 0;
   transition: opacity 0.15s ease;
+  z-index: 10;
 }
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle {

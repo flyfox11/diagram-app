@@ -2,7 +2,7 @@
   "id": "flow-1782387900682",
   "name": "流程图",
   "createdAt": "2026-06-26T04:58:46.576Z",
-  "updatedAt": "2026-07-02T02:43:09.955Z",
+  "updatedAt": "2026-07-07T07:58:42.805Z",
   "nodes": [
     {
       "id": "node-1782387738895-8vosr",
@@ -69,7 +69,7 @@
       "type": "end",
       "position": {
         "x": 761.6421031229803,
-        "y": 251.28838124992376
+        "y": 219.28838124992376
       },
       "data": {
         "label": "结束"
@@ -96,21 +96,6 @@
       "source": "node-1782387738895-8vosr",
       "target": "node-1782387745022-joa91",
       "id": "xy-edge__node-1782387738895-8vosr-node-1782387745022-joa91",
-      "selected": false
-    },
-    {
-      "type": "smoothstep",
-      "style": {
-        "stroke": "#6b7280",
-        "strokeWidth": 2
-      },
-      "markerEnd": {
-        "type": "arrowclosed",
-        "color": "#6b7280"
-      },
-      "source": "node-1782387745022-joa91",
-      "target": "node-1782387753584-ty713",
-      "id": "xy-edge__node-1782387745022-joa91-node-1782387753584-ty713",
       "selected": false
     },
     {
@@ -149,17 +134,35 @@
       "id": "xy-edge__node-1782387753584-ty713left-node-1782387745022-joa91",
       "data": {
         "bendPoint": {
-          "x": 684.1421031229803,
-          "y": 66.14419062496188
+          "x": 725.1421031229803,
+          "y": 10.64419062496188
         }
       },
       "selected": false
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1782387745022-joa91",
+      "target": "node-1782387753584-ty713",
+      "id": "xy-edge__node-1782387745022-joa91-node-1782387753584-ty713",
+      "selected": false,
+      "data": {}
     }
   ],
   "viewport": {
-    "x": 0,
-    "y": 0,
-    "zoom": 1
+    "x": -790.2842062459604,
+    "y": 226.71161875007624,
+    "zoom": 2
   },
   "diagramType": "flowchart"
 }
