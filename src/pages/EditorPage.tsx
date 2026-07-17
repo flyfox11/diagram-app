@@ -552,6 +552,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
 function FitViewOnLoad({ nodeCount }: { nodeCount: number }) {
   const { fitView, getNodes } = useReactFlow()
   const hasFitted = useRef(false)
+  const setIsFitting = useDiagramStore((s) => s.setIsFitting)
 
   useEffect(() => {
     if (hasFitted.current) return
@@ -560,11 +561,13 @@ function FitViewOnLoad({ nodeCount }: { nodeCount: number }) {
 
     const timer = setTimeout(() => {
       if (getNodes().length > 0) {
-        fitView({ padding: 0.1, duration: 300 })
+        setIsFitting(true)
+        fitView({ padding: 0.1, duration: 0 })
+        requestAnimationFrame(() => setIsFitting(false))
       }
     }, 80)
     return () => clearTimeout(timer)
-  }, [nodeCount, fitView, getNodes])
+  }, [nodeCount, fitView, getNodes, setIsFitting])
 
   return null
 }

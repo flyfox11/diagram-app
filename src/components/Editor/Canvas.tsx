@@ -1077,13 +1077,17 @@ export default memo(function Canvas({
   onEdgesChange,
   onConnect,
 }: CanvasProps) {
-  const { screenToFlowPosition, setNodes, setViewport: rfSetViewport, getViewport: rfGetViewport } = useReactFlow()
+  const { screenToFlowPosition, setNodes, setViewport: rfSetViewport, getViewport: rfGetViewport, fitView } = useReactFlow()
   // 视口安全网：vpRef 始终跟踪最新视口，每次渲染后检测并纠正偏移
   const setStoreViewport = useDiagramStore((s) => s.setViewport)
+  const isFitting = useDiagramStore((s) => s.isFitting)
+  const setIsFitting = useDiagramStore((s) => s.setIsFitting)
   const vpRef = useRef(defaultViewport)
   useEffect(() => { vpRef.current = defaultViewport }, [defaultViewport])
   // 每次渲染后检查：如果 ReactFlow 内部视口与 vpRef 不一致（被重渲染重置），立即恢复
+  // fitView 期间跳过，避免与动画竞态
   useEffect(() => {
+    if (isFitting) return
     const cur = rfGetViewport()
     const tgt = vpRef.current
     if (cur.x !== tgt.x || cur.y !== tgt.y || cur.zoom !== tgt.zoom) {
@@ -1103,6 +1107,15 @@ export default memo(function Canvas({
   const pushHistory = useDiagramStore((s) => s.pushHistory)
   const linkEditingNodeId = useDiagramStore((s) => s.linkEditingNodeId)
   const setLinkEditingNodeId = useDiagramStore((s) => s.setLinkEditingNodeId)
+
+  // 思维导图节点增删后重新居中：等 relayoutMindMap（2帧）+ 渲染完成（1帧）
+  const refitAfterLayout = useCallback(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+      setIsFitting(true)
+      fitView({ padding: 0.1, duration: 0 })
+      requestAnimationFrame(() => setIsFitting(false))
+    })))
+  }, [fitView, setIsFitting])
 
   const isMindMap = diagramType === 'mindmap'
 
@@ -1202,6 +1215,8 @@ export default memo(function Canvas({
               nds.map((n) => ({ ...n, selected: n.id === newId }))
             )
           }, 0)
+          // relayoutMindMap 在 2 帧后执行，等 3 帧后重新居中
+          refitAfterLayout()
         }
       } else if (e.key === 'Enter') {
         e.preventDefault()
@@ -1212,15 +1227,17 @@ export default memo(function Canvas({
               nds.map((n) => ({ ...n, selected: n.id === newId }))
             )
           }, 0)
+          refitAfterLayout()
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
         deleteNodeSubtree(selectedNode.id)
+        refitAfterLayout()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isMindMap, storeNodes, addChildNode, addSiblingNode, deleteNodeSubtree, setNodes])
+  }, [isMindMap, storeNodes, addChildNode, addSiblingNode, deleteNodeSubtree, setNodes, refitAfterLayout])
 
   /** 从侧边栏拖放节点到画布（仅流程图模式） */
   const onDragOver = useCallback((event: DragEvent) => {

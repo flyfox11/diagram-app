@@ -1,0 +1,188 @@
+{
+  "id": "flow-1784272198802",
+  "name": "谷歌插件",
+  "createdAt": "2026-07-17T07:09:58.802Z",
+  "updatedAt": "2026-07-17T08:20:17.548Z",
+  "nodes": [
+    {
+      "id": "node-1784272136607",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 101
+      },
+      "data": {
+        "label": "谷歌插件",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 102,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1784272195679-0twk",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "data": {
+        "label": "令牌同步",
+        "level": 1,
+        "expanded": true,
+        "note": "Token Sync\n\n自动同步测试环境Token到本地开发环境"
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1784272216682-vc4q",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 50
+      },
+      "data": {
+        "label": "路由切换",
+        "level": 1,
+        "expanded": true,
+        "note": "Vue Router Switcher\n\n用于在 Vue2/Vue3 项目中快速切换路由"
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1784272221305-k19d",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 140.5
+      },
+      "data": {
+        "label": "乾坤调试",
+        "level": 1,
+        "expanded": true,
+        "note": "Qiankun Debug Bridge\n\n微前端调试利器：自动搬运线上主应用数据到本地子应用，支持请求重定向联调"
+      },
+      "measured": {
+        "width": 122,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1784276321599-njcp",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 89.5
+      },
+      "data": {
+        "label": "关键思路",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1784276335562-zrau",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 139.5
+      },
+      "data": {
+        "label": "核心代码",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1784276362251-nhrc",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 189.5
+      },
+      "data": {
+        "label": "遇到问题",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1784272195679-clw2",
+      "source": "node-1784272136607",
+      "target": "node-1784272195679-0twk",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1784272216682-b4hu",
+      "source": "node-1784272136607",
+      "target": "node-1784272216682-vc4q",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1784272221305-pnku",
+      "source": "node-1784272136607",
+      "target": "node-1784272221305-k19d",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1784276321599-90uu",
+      "source": "node-1784272221305-k19d",
+      "target": "node-1784276321599-njcp",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1784276335562-noge",
+      "source": "node-1784272221305-k19d",
+      "target": "node-1784276335562-zrau",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1784276362251-lz7r",
+      "source": "node-1784272221305-k19d",
+      "target": "node-1784276362251-nhrc",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 467,
+    "y": 225,
+    "zoom": 2
+  },
+  "diagramType": "mindmap"
+}

@@ -1,0 +1,157 @@
+{
+  "id": "flow-1784272103511",
+  "name": "流程图1",
+  "createdAt": "2026-07-17T07:08:23.511Z",
+  "updatedAt": "2026-07-17T07:08:36.552Z",
+  "nodes": [
+    {
+      "id": "node-1784272047402-yajbm",
+      "type": "start",
+      "position": {
+        "x": 729.5,
+        "y": 6.5
+      },
+      "data": {
+        "label": "开始 / 结束"
+      },
+      "measured": {
+        "width": 120,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1784272048868-cz0ji",
+      "type": "default",
+      "position": {
+        "x": 714.5,
+        "y": 81.5
+      },
+      "data": {
+        "label": "处理过程"
+      },
+      "measured": {
+        "width": 150,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1784272054939-uu1u3",
+      "type": "diamond",
+      "position": {
+        "x": 739.5,
+        "y": 172.5
+      },
+      "data": {
+        "label": "判断条件"
+      },
+      "measured": {
+        "width": 100,
+        "height": 70
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1784272056491-las3f",
+      "type": "end",
+      "position": {
+        "x": 736.5,
+        "y": 291
+      },
+      "data": {
+        "label": "终止节点"
+      },
+      "measured": {
+        "width": 106,
+        "height": 38
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1784272047402-yajbm",
+      "target": "node-1784272048868-cz0ji",
+      "id": "xy-edge__node-1784272047402-yajbm-node-1784272048868-cz0ji",
+      "selected": false
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1784272048868-cz0ji",
+      "target": "node-1784272054939-uu1u3",
+      "id": "xy-edge__node-1784272048868-cz0ji-node-1784272054939-uu1u3"
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1784272054939-uu1u3",
+      "target": "node-1784272056491-las3f",
+      "id": "xy-edge__node-1784272054939-uu1u3-node-1784272056491-las3f"
+    },
+    {
+      "type": "custom",
+      "style": {
+        "stroke": "#94a3b8",
+        "strokeWidth": 1.5
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#94a3b8",
+        "width": 16,
+        "height": 16
+      },
+      "source": "node-1784272054939-uu1u3",
+      "sourceHandle": "left",
+      "target": "node-1784272048868-cz0ji",
+      "id": "xy-edge__node-1784272054939-uu1u3left-node-1784272048868-cz0ji",
+      "selected": false,
+      "data": {
+        "bendPoint": {
+          "x": 671.5,
+          "y": 58
+        }
+      }
+    }
+  ],
+  "viewport": {
+    "x": -674,
+    "y": 59,
+    "zoom": 2
+  },
+  "diagramType": "flowchart"
+}

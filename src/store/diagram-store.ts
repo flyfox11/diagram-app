@@ -56,6 +56,8 @@ interface DiagramState {
   undo: () => void
   redo: () => void
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void
+  isFitting: boolean
+  setIsFitting: (v: boolean) => void
   setName: (name: string) => void
   setSaving: (saving: boolean) => void
   setSaveError: (error: string | null) => void
@@ -75,6 +77,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
   nodes: [],
   edges: [],
   viewport: { x: 0, y: 0, zoom: 1 },
+  isFitting: false,
   isDirty: false,
   saving: false,
   saveError: null,
@@ -336,6 +339,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
     })),
 
   setViewport: (viewport) => set({ viewport }),
+  setIsFitting: (v) => set({ isFitting: v }),
 
   setName: (name) => set({ currentName: name, isDirty: true }),
   setSaving: (saving) => set({ saving }),
@@ -351,6 +355,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
       nodes: [],
       edges: [],
       viewport: { x: 0, y: 0, zoom: 1 },
+      isFitting: false,
       isDirty: false,
       saveError: null,
       _past: [],

@@ -8,8 +8,14 @@ import tailwindcss from '@tailwindcss/vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 import viteLocalStorage from './vite-local-storage'
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), viteLocalStorage(), viteSingleFile()],
+export default defineConfig(({ command }) => ({
+  plugins: [
+    react(),
+    tailwindcss(),
+    viteLocalStorage(),
+    // viteSingleFile 仅在 build 时启用，避免 dev 模式下干扰
+    ...(command === 'build' ? [viteSingleFile()] : []),
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
@@ -18,4 +24,4 @@ export default defineConfig({
   server: {
     port: 5173,
   },
-})
+}))
