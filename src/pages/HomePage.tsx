@@ -216,7 +216,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
 
   useEffect(() => {
     fetchList()
-  }, [isConfigured])
+  }, [isConfigured, settings.provider, activeToken])
 
   const handleDeleteClick = (filename: string, displayName: string) => {
     setDeleteConfirm({ filename, displayName })
@@ -351,7 +351,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-            <p className="text-gray-500 mb-4">暂无流程图文件</p>
+            <p className="text-gray-500 mb-4">还没有文件，点击新建开始创作吧</p>
             <button
               onClick={() => setShowNewMenu(true)}
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
