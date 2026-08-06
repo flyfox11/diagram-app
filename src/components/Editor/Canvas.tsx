@@ -23,7 +23,8 @@ import {
 } from '@xyflow/react'
 import { useDiagramStore } from '@/store/diagram-store'
 import { getVisibleNodeIds } from '@/utils/mindmap-layout'
-import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X, Palette, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from 'lucide-react'
+import MDEditor from '@uiw/react-md-editor'
+import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X, Palette, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FileText } from 'lucide-react'
 
 /** ---- 工具函数 ---- */
 
@@ -581,7 +582,7 @@ export type LabelStyle = {
   color?: string
 }
 
-type NodeData = { label: string; flag?: 'red' | 'green' | 'blue'; note?: string; level?: number; expanded?: boolean; link?: { url: string; title?: string }; image?: string; labelStyle?: LabelStyle }
+type NodeData = { label: string; flag?: 'red' | 'green' | 'blue'; note?: string; level?: number; expanded?: boolean; link?: { url: string; title?: string }; image?: string; labelStyle?: LabelStyle; hasMarkdown?: boolean }
 
 const flagColors: Record<string, string> = { red: 'text-red-500', green: 'text-green-500', blue: 'text-blue-500' }
 
@@ -708,6 +709,57 @@ function NodeNoteIcon({ id, data }: { id: string; data: NodeData }) {
   )
 }
 
+function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
+  const setMdEditingNodeId = useDiagramStore((s) => s.setMdEditingNodeId)
+  const markdownData = useDiagramStore((s) => s.markdownData)
+  const [showPreview, setShowPreview] = useState(false)
+  const iconRef = useRef<HTMLSpanElement>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
+
+  const hasMd = !!data?.hasMarkdown && !!markdownData[id]
+  if (!hasMd) return null
+
+  const content = markdownData[id]?.content || ''
+  const previewText = content.slice(0, 300)
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect()
+      setTooltipPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setShowPreview(true)
+  }
+
+  return (
+    <span
+      ref={iconRef}
+      className="cursor-pointer text-cyan-400 hover:text-cyan-300"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={(e) => { e.stopPropagation(); setShowPreview(false) }}
+      onClick={(e) => {
+        e.stopPropagation()
+        setMdEditingNodeId(id)
+      }}
+    >
+      <FileText className="w-3.5 h-3.5" />
+      {showPreview && tooltipPos && createPortal(
+        <div
+          className="fixed z-[9999] bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-3 max-w-[320px] max-h-[200px] overflow-y-auto"
+          style={{ top: tooltipPos.top, left: tooltipPos.left }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseLeave={(e) => { e.stopPropagation(); setShowPreview(false) }}
+        >
+          <div className="text-xs text-gray-200 prose prose-invert prose-sm max-w-none">
+            <MDEditor.Markdown source={previewText} />
+          </div>
+        </div>,
+        document.body
+      )}
+    </span>
+  )
+}
+
 /** ---- 自定义节点组件 ---- */
 
 function DefaultNode({ id, data }: { id: string; data: NodeData }) {
@@ -718,6 +770,7 @@ function DefaultNode({ id, data }: { id: string; data: NodeData }) {
       <NodeFlag data={data} />
       <EditableLabel nodeId={id} value={data.label} placeholder="处理过程" />
       <NodeNoteIcon id={id} data={data} />
+      <NodeMarkdownIcon id={id} data={data} />
       <NodeLinkIcon id={id} data={data} />
       <Handle type="source" position={Position.Right} className="!bg-gray-500 !w-2.5 !h-2.5" />
       <Handle type="source" position={Position.Bottom} className="!bg-gray-500 !w-2.5 !h-2.5" />
@@ -731,6 +784,7 @@ function StartNode({ id, data }: { id: string; data: NodeData }) {
       <NodeFlag data={data} />
       <EditableLabel nodeId={id} value={data.label} placeholder="开始" />
       <NodeNoteIcon id={id} data={data} />
+      <NodeMarkdownIcon id={id} data={data} />
       <NodeLinkIcon id={id} data={data} />
       <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-2.5 !h-2.5" />
     </div>
@@ -744,6 +798,7 @@ function EndNode({ id, data }: { id: string; data: NodeData }) {
       <NodeFlag data={data} />
       <EditableLabel nodeId={id} value={data.label} placeholder="结束" />
       <NodeNoteIcon id={id} data={data} />
+      <NodeMarkdownIcon id={id} data={data} />
       <NodeLinkIcon id={id} data={data} />
     </div>
   )
@@ -770,6 +825,7 @@ function DiamondNode({ id, data }: { id: string; data: NodeData }) {
         <NodeFlag data={data} />
         <EditableLabel nodeId={id} value={data.label} className="text-xs text-yellow-100 font-medium" placeholder="判断" />
         <NodeNoteIcon id={id} data={data} />
+        <NodeMarkdownIcon id={id} data={data} />
         <NodeLinkIcon id={id} data={data} />
       </span>
       <Handle type="source" position={Position.Bottom} className="!bg-yellow-500 !w-2.5 !h-2.5" />
@@ -842,6 +898,7 @@ function MindMapNode({ id, data }: { id: string; data: NodeData }) {
           <div className="flex items-center gap-1 shrink-0">
             <NodeLinkIcon id={id} data={data} />
             <NodeNoteIcon id={id} data={data} />
+            <NodeMarkdownIcon id={id} data={data} />
             {hasChildren && (
               <button
                 onClick={(e) => {
@@ -871,6 +928,7 @@ function MindMapNode({ id, data }: { id: string; data: NodeData }) {
         <EditableLabel nodeId={id} value={data.label} placeholder="分支" />
       </span>
       <NodeNoteIcon id={id} data={data} />
+      <NodeMarkdownIcon id={id} data={data} />
       <NodeLinkIcon id={id} data={data} />
       {hasChildren && (
         <button
@@ -1056,6 +1114,108 @@ function NoteDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => void }
   )
 }
 
+/** ---- Markdown 文档抽屉组件 ---- */
+
+function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
+  const nodes = useDiagramStore((s) => s.nodes)
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+  const markdownData = useDiagramStore((s) => s.markdownData)
+  const updateNodeMarkdown = useDiagramStore((s) => s.updateNodeMarkdown)
+  const deleteNodeMarkdown = useDiagramStore((s) => s.deleteNodeMarkdown)
+  const pushHistory = useDiagramStore((s) => s.pushHistory)
+  const node = nodes.find((n) => n.id === nodeId)
+  const nodeLabel = (node?.data?.label as string) || '未命名节点'
+  const existingContent = markdownData[nodeId]?.content || ''
+  const [text, setText] = useState(existingContent)
+  const [mode, setMode] = useState<'edit' | 'live' | 'preview'>(existingContent ? 'live' : 'edit')
+
+  const handleSave = () => {
+    if (text.trim()) {
+      pushHistory()
+      updateNodeMarkdown(nodeId, text)
+      updateNodeData(nodeId, { hasMarkdown: true })
+    } else {
+      if (existingContent) {
+        pushHistory()
+        deleteNodeMarkdown(nodeId)
+        updateNodeData(nodeId, { hasMarkdown: false })
+      }
+    }
+    onClose()
+  }
+
+  const handleDelete = () => {
+    pushHistory()
+    deleteNodeMarkdown(nodeId)
+    updateNodeData(nodeId, { hasMarkdown: false })
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={handleSave}>
+      <div
+        className="w-[640px] max-w-full h-full bg-gray-900 border-l border-gray-700 shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        data-color-mode="dark"
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <h3 className="text-gray-200 font-medium text-sm flex items-center gap-2">
+            <FileText className="w-4 h-4 text-cyan-400" />
+            Markdown 文档 — {nodeLabel}
+          </h3>
+          <div className="flex items-center gap-2">
+            {existingContent && (
+              <button
+                onClick={handleDelete}
+                className="text-red-400 hover:text-red-300 text-sm px-2 py-1 hover:bg-gray-800 rounded transition-colors"
+              >
+                删除文档
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              className="text-gray-400 hover:text-gray-200 text-lg leading-none"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <MDEditor
+            value={text}
+            onChange={(val) => setText(val || '')}
+            height="100%"
+            preview={mode}
+            textareaProps={{ autoFocus: true }}
+          />
+        </div>
+        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-700">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <button
+              onClick={() => setMode('edit')}
+              className={`px-2 py-1 rounded ${mode === 'edit' ? 'bg-gray-700 text-gray-200' : 'hover:bg-gray-800 text-gray-400'}`}
+            >编辑</button>
+            <button
+              onClick={() => setMode('live')}
+              className={`px-2 py-1 rounded ${mode === 'live' ? 'bg-gray-700 text-gray-200' : 'hover:bg-gray-800 text-gray-400'}`}
+            >分屏</button>
+            <button
+              onClick={() => setMode('preview')}
+              className={`px-2 py-1 rounded ${mode === 'preview' ? 'bg-gray-700 text-gray-200' : 'hover:bg-gray-800 text-gray-400'}`}
+            >预览</button>
+          </div>
+          <button
+            onClick={handleSave}
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** ---- Canvas Props ---- */
 
 export interface CanvasProps {
@@ -1107,20 +1267,31 @@ export default memo(function Canvas({
   const pushHistory = useDiagramStore((s) => s.pushHistory)
   const linkEditingNodeId = useDiagramStore((s) => s.linkEditingNodeId)
   const setLinkEditingNodeId = useDiagramStore((s) => s.setLinkEditingNodeId)
+  const mdEditingNodeId = useDiagramStore((s) => s.mdEditingNodeId)
+  const setMdEditingNodeId = useDiagramStore((s) => s.setMdEditingNodeId)
 
   // 思维导图节点增删后重新居中：等 relayoutMindMap（2帧）+ 渲染完成（1帧）
+  // 注意：v12 的 fitView 是异步的，必须等 Promise resolve 后再读视口同步 vpRef/store，
+  // 否则会把旧视口写回，安全网会把画布拉回旧位置
   const refitAfterLayout = useCallback(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
       setIsFitting(true)
       fitView({ padding: 0.1, duration: 0 })
-      requestAnimationFrame(() => setIsFitting(false))
+        .then(() => {
+          const vp = rfGetViewport()
+          vpRef.current = vp
+          setStoreViewport(vp)
+        })
+        .finally(() => {
+          requestAnimationFrame(() => setIsFitting(false))
+        })
     })))
-  }, [fitView, setIsFitting])
+  }, [fitView, rfGetViewport, setStoreViewport, setIsFitting])
 
   const isMindMap = diagramType === 'mindmap'
 
   // 右键菜单状态
-  const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number; flag: string | undefined; hasNote: boolean; hasLink: boolean; hasImage: boolean } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number; flag: string | undefined; hasNote: boolean; hasLink: boolean; hasImage: boolean; hasMarkdown: boolean } | null>(null)
   const [showFlagSubmenu, setShowFlagSubmenu] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const imageNodeIdRef = useRef<string | null>(null)
@@ -1135,6 +1306,7 @@ export default memo(function Canvas({
       hasNote: !!node.data?.note,
       hasLink: !!node.data?.link,
       hasImage: !!node.data?.image,
+      hasMarkdown: !!node.data?.hasMarkdown,
     })
     setShowFlagSubmenu(false)
   }, [])
@@ -1472,6 +1644,18 @@ export default memo(function Canvas({
           {contextMenu.hasNote ? '编辑备注' : '插入备注'}
         </button>
 
+        {/* Markdown 文档 */}
+        <button
+          onClick={() => {
+            setMdEditingNodeId(contextMenu.nodeId)
+            setContextMenu(null)
+          }}
+          className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          {contextMenu.hasMarkdown ? '编辑文档' : '插入文档'}
+        </button>
+
         <div className="border-t border-gray-700 my-0.5" />
 
         {/* 添加/更换图片 */}
@@ -1506,6 +1690,11 @@ export default memo(function Canvas({
     {/* 备注抽屉 */}
     {noteEditingNodeId && (
       <NoteDrawer nodeId={noteEditingNodeId} onClose={() => setNoteEditingNodeId(null)} />
+    )}
+
+    {/* Markdown 文档抽屉 */}
+    {mdEditingNodeId && (
+      <MarkdownDrawer nodeId={mdEditingNodeId} onClose={() => setMdEditingNodeId(null)} />
     )}
     </>
   )

@@ -1,6 +1,6 @@
 import { useDiagramStore } from '@/store/diagram-store'
 import { buildChildrenMap, findRoots, getVisibleNodeIds, getParentId } from '@/utils/mindmap-layout'
-import { ChevronRight, ChevronDown, FileText, Flag, Search, X, Link2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, FileText, Flag, Search, X, Link2, FileType } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import type React from 'react'
 
@@ -155,6 +155,8 @@ export default function OutlineView() {
     const flagColor = node.data?.flag as string | undefined
     const note = (node.data?.note as string) || ''
     const link = node.data?.link as { url: string; title?: string } | undefined
+    const hasMarkdown = !!node.data?.hasMarkdown
+    const markdownData = useDiagramStore.getState().markdownData[nodeId]
 
     const flagColors: Record<string, string> = { red: 'text-red-500', green: 'text-green-500', blue: 'text-blue-500' }
 
@@ -206,6 +208,20 @@ export default function OutlineView() {
               >
                 <Link2 className="w-3.5 h-3.5" />
               </a>
+            )}
+
+            {/* Markdown 文档图标 */}
+            {hasMarkdown && markdownData && (
+              <span
+                className="shrink-0 ml-1 text-cyan-400 cursor-pointer hover:text-cyan-300"
+                title="Markdown 文档"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  useDiagramStore.getState().setMdEditingNodeId(nodeId)
+                }}
+              >
+                <FileType className="w-3.5 h-3.5" />
+              </span>
             )}
           </div>
         </div>

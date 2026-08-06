@@ -56,7 +56,7 @@ export default function viteLocalStorage(): Plugin {
             }
             const files = fs
               .readdirSync(JSON_DIR)
-              .filter((f) => f.endsWith('.json'))
+              .filter((f) => f.endsWith('.json') && !f.endsWith('.md.json'))
             const metas = files.map((f) => {
               const content = JSON.parse(
                 fs.readFileSync(path.join(JSON_DIR, f), 'utf-8')

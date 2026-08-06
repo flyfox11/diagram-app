@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Node, Edge } from '@xyflow/react'
-import type { DiagramData, DiagramMeta } from '@/types/diagram'
+import type { DiagramData, DiagramMeta, MarkdownData } from '@/types/diagram'
 import { layoutMindMap, getDescendantIds, getParentId } from '@/utils/mindmap-layout'
 
 type NodeUpdater = Node[] | ((prev: Node[]) => Node[])
@@ -58,6 +58,21 @@ interface DiagramState {
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void
   isFitting: boolean
   setIsFitting: (v: boolean) => void
+
+  // Markdown 文档（懒加载、独立保存）
+  markdownData: MarkdownData
+  markdownLoaded: boolean
+  markdownDirty: boolean
+  markdownSaving: boolean
+  mdEditingNodeId: string | null
+  setMdEditingNodeId: (id: string | null) => void
+  setMarkdownData: (data: MarkdownData) => void
+  setMarkdownLoaded: (loaded: boolean) => void
+  setMarkdownDirty: (dirty: boolean) => void
+  setMarkdownSaving: (saving: boolean) => void
+  updateNodeMarkdown: (nodeId: string, content: string) => void
+  deleteNodeMarkdown: (nodeId: string) => void
+  clearMarkdown: () => void
   setName: (name: string) => void
   setSaving: (saving: boolean) => void
   setSaveError: (error: string | null) => void
@@ -347,6 +362,46 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
   markClean: () => set({ isDirty: false }),
   setCurrentFile: (id) => set({ currentFile: id }),
 
+  // Markdown 文档状态
+  markdownData: {},
+  markdownLoaded: false,
+  markdownDirty: false,
+  markdownSaving: false,
+  mdEditingNodeId: null,
+  setMdEditingNodeId: (id) => set({ mdEditingNodeId: id }),
+  setMarkdownData: (data) => set({ markdownData: data }),
+  setMarkdownLoaded: (loaded) => set({ markdownLoaded: loaded }),
+  setMarkdownDirty: (dirty) => set({ markdownDirty: dirty }),
+  setMarkdownSaving: (saving) => set({ markdownSaving: saving }),
+
+  updateNodeMarkdown: (nodeId, content) =>
+    set((state) => ({
+      markdownData: {
+        ...state.markdownData,
+        [nodeId]: {
+          content,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      markdownDirty: true,
+    })),
+
+  deleteNodeMarkdown: (nodeId) =>
+    set((state) => {
+      const next = { ...state.markdownData }
+      delete next[nodeId]
+      return { markdownData: next, markdownDirty: true }
+    }),
+
+  clearMarkdown: () =>
+    set({
+      markdownData: {},
+      markdownLoaded: false,
+      markdownDirty: false,
+      markdownSaving: false,
+      mdEditingNodeId: null,
+    }),
+
   resetEditor: () =>
     set({
       currentFile: null,
@@ -360,5 +415,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => ({
       saveError: null,
       _past: [],
       _future: [],
+      markdownData: {},
+      markdownLoaded: false,
+      markdownDirty: false,
+      markdownSaving: false,
+      mdEditingNodeId: null,
     }),
 }))

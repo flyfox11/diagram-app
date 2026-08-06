@@ -1,0 +1,134 @@
+{
+  "id": "flow-1785995334898",
+  "name": "frontend",
+  "createdAt": "2026-08-06T05:48:54.898Z",
+  "updatedAt": "2026-08-06T05:53:31.305Z",
+  "nodes": [
+    {
+      "id": "node-1785995193159",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 50
+      },
+      "data": {
+        "label": "框架分类",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 102,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1785995223519-mgf9",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "data": {
+        "label": "vue",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1785995229042-a944",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 50
+      },
+      "data": {
+        "label": "react",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1785995233883-9h6g",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 100
+      },
+      "data": {
+        "label": "qiankun",
+        "level": 1,
+        "expanded": true,
+        "note": "主要是原理剖析 和 vs iframe",
+        "hasMarkdown": true
+      },
+      "measured": {
+        "width": 114,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1785995241305-rt3w",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "data": {
+        "label": "mpvue",
+        "level": 2,
+        "expanded": true,
+        "hasMarkdown": true,
+        "note": "mpvue的第一版在vue的基础上都改了哪些"
+      },
+      "measured": {
+        "width": 106,
+        "height": 34
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1785995223519-zb6t",
+      "source": "node-1785995193159",
+      "target": "node-1785995223519-mgf9",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1785995229042-dlfg",
+      "source": "node-1785995193159",
+      "target": "node-1785995229042-a944",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1785995233883-q06t",
+      "source": "node-1785995193159",
+      "target": "node-1785995233883-9h6g",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1785995241305-gmrd",
+      "source": "node-1785995223519-mgf9",
+      "target": "node-1785995241305-rt3w",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 468.1323139911674,
+    "y": 290.96009955687236,
+    "zoom": 2
+  },
+  "diagramType": "mindmap"
+}

@@ -19,13 +19,14 @@ import {
   applyEdgeChanges,
   addEdge,
   useReactFlow,
+  useNodesInitialized,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
 } from '@xyflow/react'
 import { useDiagramStore } from '@/store/diagram-store'
 import { useSettingsStore } from '@/store/settings-store'
-import { saveDiagram, getDiagram } from '@/services/api'
+import { saveDiagram, getDiagram, getMarkdown, saveMarkdown } from '@/services/api'
 import { exportElementAsPng } from '@/utils/export-png'
 import Canvas from '@/components/Editor/Canvas'
 import NodePalette from '@/components/Editor/NodePalette'
@@ -74,6 +75,11 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     _past,
     _future,
     pushHistory,
+    markdownDirty,
+    markdownData,
+    markdownLoaded,
+    setMarkdownDirty,
+    setMarkdownSaving,
   } = useDiagramStore()
 
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -86,8 +92,12 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
   }
 
   // 加载已有文件（dev 模式不需要 isConfigured）
-  // 刷新已有图表时首帧即显示遮罩，避免画布在 {x:0,y:0,zoom:1} 闪现
-  const [diagramLoading, setDiagramLoading] = useState(() => !!id && id !== 'new')
+  // 刷新已有图表 / 新建思维导图时首帧即显示遮罩，避免画布在 {x:0,y:0,zoom:1} 闪现
+  // 遮罩由 FitViewOnLoad 完成 fitView 后清除（onFitted），另有 2 秒兜底
+  const [diagramLoading, setDiagramLoading] = useState(
+    () => (!!id && id !== 'new') || searchParams.get('type') === 'mindmap'
+  )
+  const [mdSaveTimer, setMdSaveTimer] = useState<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     if (!id || id === 'new') {
@@ -111,13 +121,33 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     getDiagram(activeToken, activeRepoConfig, filename)
       .then((data) => {
         loadDiagram(data)
-        setDiagramLoading(false)
+        // 有节点时等 FitViewOnLoad 真正 fit 完成后再清遮罩（onFitted），避免居中前闪现
+        if (!data.nodes?.length) setDiagramLoading(false)
+        // 懒加载 Markdown 文档（不阻塞画布渲染）
+        const mdFilename = `${id}.md.json`
+        getMarkdown(activeToken, activeRepoConfig, mdFilename)
+          .then((mdData) => {
+            useDiagramStore.getState().setMarkdownData(mdData)
+            useDiagramStore.getState().setMarkdownLoaded(true)
+          })
+          .catch(() => {
+            useDiagramStore.getState().setMarkdownLoaded(true)
+          })
       })
       .catch((e) => {
         setSaveError(`加载失败: ${(e as Error).message}`)
         setDiagramLoading(false)
       })
   }, [id, isConfigured, searchParams, setDiagramType])
+
+  // 遮罩兜底：任何异常路径下最多 2 秒强制清除，避免遮罩卡死
+  useEffect(() => {
+    if (!diagramLoading) return
+    const t = setTimeout(() => setDiagramLoading(false), 2000)
+    return () => clearTimeout(t)
+  }, [diagramLoading])
+
+  const handleFitted = useCallback(() => setDiagramLoading(false), [])
 
   const handleSave = useCallback(async (silent = false) => {
     if (!import.meta.env.DEV && !isConfigured) return
@@ -138,6 +168,22 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
         viewport,
         diagramType,
       })
+      // 新图首次保存：把内存中的 Markdown 一并落到对应 md 文件，
+      // 避免导航后 getMarkdown 拿不到（之前 md 写到了随机 id 的孤儿文件）
+      if (!currentFile) {
+        const md = useDiagramStore.getState().markdownData
+        const cleanMd: Record<string, { content: string; updatedAt: string }> = {}
+        for (const [k, v] of Object.entries(md)) {
+          if (v.content?.trim()) cleanMd[k] = v
+        }
+        if (Object.keys(cleanMd).length > 0) {
+          try {
+            await saveMarkdown(activeToken, activeRepoConfig, `${fileId}.md.json`, cleanMd)
+          } catch (e) {
+            console.error('Markdown 联动保存失败:', e)
+          }
+        }
+      }
       markClean()
       if (!silent) {
         showToast('success', '保存成功')
@@ -199,6 +245,35 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
     }, 2000)
     return () => clearTimeout(autoSaveTimer.current)
   }, [isDirty, settings.autoSave, handleSave])
+
+  // Markdown 独立自动保存：markdownDirty 变化时延迟 2 秒保存
+  // 新图（currentFile 为空）不写文件，避免用随机 id 生成孤儿 md 文件；
+  // 此时 md 仅存内存，等 handleSave 保存图时拿到确定 id 后一并写入
+  useEffect(() => {
+    if (!markdownDirty || !markdownLoaded || !currentFile) return
+    clearTimeout(mdSaveTimer)
+    const timer = setTimeout(async () => {
+      const fileId = currentFile
+      const mdFilename = `${fileId}.md.json`
+      setMarkdownSaving(true)
+      try {
+        // 只保存有内容的条目，清理孤儿数据
+        const cleanData: Record<string, { content: string; updatedAt: string }> = {}
+        for (const [k, v] of Object.entries(markdownData)) {
+          if (v.content?.trim()) cleanData[k] = v
+        }
+        await saveMarkdown(activeToken, activeRepoConfig, mdFilename, cleanData)
+        useDiagramStore.getState().setMarkdownData(cleanData)
+        setMarkdownDirty(false)
+      } catch (e) {
+        console.error('Markdown 保存失败:', e)
+      } finally {
+        setMarkdownSaving(false)
+      }
+    }, 2000)
+    setMdSaveTimer(timer)
+    return () => clearTimeout(timer)
+  }, [markdownDirty, markdownLoaded, markdownData, currentFile, activeToken, activeRepoConfig, setMarkdownDirty, setMarkdownSaving])
 
   // 导出 JSON
   const handleExportJson = useCallback(() => {
@@ -494,7 +569,7 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
               {/* PNG 导出桥接：在 ReactFlowProvider 内部获取 fitView */}
               <PngExportBridge onReady={handlePngReady} />
               {/* 数据异步加载完成后自动 fitView */}
-              <FitViewOnLoad nodeCount={nodes.length} />
+              <FitViewOnLoad nodeCount={nodes.length} onFitted={handleFitted} />
               {/* 加载遮罩：避免显示上一个图的残留内容 */}
               {diagramLoading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-gray-950">
@@ -548,26 +623,92 @@ export default function EditorPage({ onOpenStorageConfig }: EditorPageProps) {
   )
 }
 
-/** 数据加载后自动 fitView（仅在 ReactFlowProvider 因 key={id} 变化而 remount 时触发一次） */
-function FitViewOnLoad({ nodeCount }: { nodeCount: number }) {
-  const { fitView, getNodes } = useReactFlow()
+/**
+ * 数据加载后自动 fitView（仅在 ReactFlowProvider 因 key={id} 变化而 remount 时触发一次）
+ *
+ * 关键一：ReactFlow v12 的 fitView 是异步的（入队后等节点测量完成才执行，返回 Promise）。
+ * 必须在 Promise resolve 后才读取视口同步到 store / 释放 isFitting，否则会把旧视口
+ * {0,0,1} 写回 store，导致安全网把画布拉回左上角。
+ *
+ * 关键二：nodesInitialized 只代表节点"被测量过"，样式/字体就绪后尺寸可能再变。
+ * 若按过时尺寸居中，节点随后收缩就会偏移（偏移量=(旧宽-新宽)/2×zoom）。
+ * 因此等尺寸连续两次一致（稳定）后再 fit，并在 fit 后再检查一次做迟到纠偏。
+ *
+ * 关键三：useReactFlow 返回值是 useMemo(..., [viewportInitialized])，panZoom 就绪时
+ * fitView/getNodes 等函数身份全部更换会重跑本 effect；且 panZoom 未就绪时调用
+ * fitView 会直接 return、Promise 永不 resolve。所以：① 必须等 viewportInitialized
+ * 就绪才启动；② hasFitted 只在 fit 真正完成后才标记，中途被依赖变化取消则
+ * 重跑时自动重来，避免永久锁死导致 fit 从未执行（创建时停在左上角的根因）。
+ */
+function FitViewOnLoad({ nodeCount, onFitted }: { nodeCount: number; onFitted?: () => void }) {
+  const { fitView, getNodes, getViewport, viewportInitialized } = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
   const hasFitted = useRef(false)
   const setIsFitting = useDiagramStore((s) => s.setIsFitting)
+  const setStoreViewport = useDiagramStore((s) => s.setViewport)
 
   useEffect(() => {
     if (hasFitted.current) return
-    if (nodeCount === 0) return
-    hasFitted.current = true
+    if (nodeCount === 0 || !nodesInitialized || !viewportInitialized) return
 
-    const timer = setTimeout(() => {
-      if (getNodes().length > 0) {
+    let cancelled = false
+    const timers: ReturnType<typeof setTimeout>[] = []
+    // 节点尺寸签名：任一节点测量尺寸变化都会改变签名
+    const sizeSig = () =>
+      getNodes()
+        .map((n) => `${n.id}:${Math.round(n.measured?.width ?? 0)}x${Math.round(n.measured?.height ?? 0)}`)
+        .join('|')
+
+    const doFit = () =>
+      new Promise<void>((resolve) => {
         setIsFitting(true)
         fitView({ padding: 0.1, duration: 0 })
-        requestAnimationFrame(() => setIsFitting(false))
-      }
-    }, 80)
-    return () => clearTimeout(timer)
-  }, [nodeCount, fitView, getNodes, setIsFitting])
+          .then(() => {
+            // fit 真正完成后，此时的视口才是居中后的值，同步到 store 供 vpRef 安全网使用
+            setStoreViewport(getViewport())
+          })
+          .finally(() => {
+            // 等 store 更新引发的渲染完成（vpRef 同步到新值）后再释放 isFitting
+            requestAnimationFrame(() => {
+              setIsFitting(false)
+              resolve()
+            })
+          })
+      })
+
+    const start = Date.now()
+    let last = sizeSig()
+    const waitStable = () => {
+      timers.push(setTimeout(() => {
+        if (cancelled) return
+        const cur = sizeSig()
+        // 尺寸仍在变化且未超时，继续等稳定
+        if (cur !== last && Date.now() - start < 900) {
+          last = cur
+          waitStable()
+          return
+        }
+        last = cur
+        doFit().then(() => {
+          if (cancelled) return
+          // fit 真正完成才标记，中途被取消则下次 effect 重跑时重新 fit
+          hasFitted.current = true
+          onFitted?.()
+          // 迟到纠偏：字体/图片延迟就绪导致 fit 后尺寸又变，再居中一次
+          timers.push(setTimeout(() => {
+            if (cancelled) return
+            if (sizeSig() !== last) void doFit()
+          }, 400))
+        })
+      }, 60))
+    }
+    waitStable()
+
+    return () => {
+      cancelled = true
+      timers.forEach(clearTimeout)
+    }
+  }, [nodeCount, nodesInitialized, viewportInitialized, fitView, getNodes, getViewport, setIsFitting, setStoreViewport, onFitted])
 
   return null
 }

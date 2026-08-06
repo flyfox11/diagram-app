@@ -3,7 +3,7 @@
  * import.meta.env.DEV 是 Vite 编译时常量，未使用的分支会被 tree-shake。
  */
 
-import type { DiagramData, DiagramMeta, RepoConfig } from '@/types/diagram'
+import type { DiagramData, DiagramMeta, RepoConfig, MarkdownData } from '@/types/diagram'
 import * as githubApi from './github-api'
 import * as giteeApi from './gitee-api'
 import * as localApi from './local-storage'
@@ -54,4 +54,40 @@ export async function deleteDiagram(
     return localApi.deleteDiagram(filename)
   }
   return getRemoteApi(config!).deleteDiagram(token!, config!, filename)
+}
+
+// ---- Markdown 文档 CRUD ----
+
+export async function getMarkdown(
+  token: string | undefined,
+  config: RepoConfig | undefined,
+  filename: string
+): Promise<MarkdownData> {
+  if (import.meta.env.DEV) {
+    return localApi.getMarkdown(filename)
+  }
+  return getRemoteApi(config!).getMarkdown(token!, config!, filename)
+}
+
+export async function saveMarkdown(
+  token: string | undefined,
+  config: RepoConfig | undefined,
+  filename: string,
+  data: MarkdownData
+): Promise<void> {
+  if (import.meta.env.DEV) {
+    return localApi.saveMarkdown(filename, data)
+  }
+  return getRemoteApi(config!).saveMarkdown(token!, config!, filename, data)
+}
+
+export async function deleteMarkdown(
+  token: string | undefined,
+  config: RepoConfig | undefined,
+  filename: string
+): Promise<void> {
+  if (import.meta.env.DEV) {
+    return localApi.deleteMarkdown(filename)
+  }
+  return getRemoteApi(config!).deleteMarkdown(token!, config!, filename)
 }

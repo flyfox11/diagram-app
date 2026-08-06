@@ -15,7 +15,7 @@ import JSZip from 'jszip'
 import { useDiagramStore } from '@/store/diagram-store'
 import { useSettingsStore } from '@/store/settings-store'
 import SettingsDropdown from '@/components/Settings/SettingsDropdown'
-import { listDiagrams, deleteDiagram, getDiagram, saveDiagram } from '@/services/api'
+import { listDiagrams, deleteDiagram, deleteMarkdown, getDiagram, saveDiagram } from '@/services/api'
 import type { DiagramData } from '@/types/diagram'
 import { useEffect, useState, useRef } from 'react'
 
@@ -225,6 +225,7 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
   const handleDelete = async () => {
     if (!deleteConfirm) return
     const filename = deleteConfirm.filename
+    const fileId = filename.replace(/\.json$/, '')
     setDeleteConfirm(null)
     setDeleting(filename)
     try {
@@ -232,6 +233,12 @@ export default function HomePage({ onOpenStorageConfig }: HomePageProps) {
         activeToken,
         activeRepoConfig,
         filename
+      )
+      // 同时删除关联的 Markdown 文件
+      await deleteMarkdown(
+        activeToken,
+        activeRepoConfig,
+        `${fileId}.md.json`
       )
       await fetchList()
     } catch (e) {

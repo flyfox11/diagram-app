@@ -20,6 +20,15 @@ export interface DiagramData extends DiagramMeta {
   diagramType?: 'flowchart' | 'mindmap'
 }
 
+/** Markdown 文档条目 */
+export interface MarkdownEntry {
+  content: string
+  updatedAt: string
+}
+
+/** Markdown 文档集合（按 nodeId 索引） */
+export type MarkdownData = Record<string, MarkdownEntry>
+
 /** 存储平台 */
 export type StorageProvider = 'github' | 'gitee'
 

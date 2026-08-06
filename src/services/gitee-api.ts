@@ -1,4 +1,4 @@
-import type { DiagramData, DiagramMeta, RepoConfig } from '@/types/diagram'
+import type { DiagramData, DiagramMeta, RepoConfig, MarkdownData } from '@/types/diagram'
 
 const API_BASE = 'https://gitee.com/api/v5'
 
@@ -36,7 +36,7 @@ export async function listDiagrams(
 
   const metas = await Promise.all(
     files
-      .filter((f) => f.name.endsWith('.json'))
+      .filter((f) => f.name.endsWith('.json') && !f.name.endsWith('.md.json'))
       .map(async (file) => {
         // 统一使用 Gitee API raw 端点，避免 download_url 的 302 重定向丢失 access_token
         const rawUrl = `${API_BASE}/repos/${config.owner}/${config.repo}/raw/json/${file.name}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
@@ -150,5 +150,105 @@ export async function deleteDiagram(
 
   if (!res.ok) {
     throw new Error(`删除失败: ${res.status}`)
+  }
+}
+
+// ---- Markdown 文档 CRUD ----
+
+/** 读取 Markdown 文档集合（文件不存在时返回空对象） */
+export async function getMarkdown(
+  token: string,
+  config: RepoConfig,
+  filename: string
+): Promise<MarkdownData> {
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/json/${filename}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
+  const res = await fetch(url, { headers: getHeaders(token) })
+  if (res.status === 404) return {}
+  if (!res.ok) throw new Error(`读取 Markdown 失败: ${res.status}`)
+  const file: { content: string } = await res.json()
+  return JSON.parse(fromBase64(file.content))
+}
+
+/** 保存 Markdown 文档集合 */
+export async function saveMarkdown(
+  token: string,
+  config: RepoConfig,
+  filename: string,
+  data: MarkdownData
+): Promise<void> {
+  const path = `json/${filename}`
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
+
+  let sha: string | undefined
+  try {
+    const checkRes = await fetch(url, { headers: getHeaders(token) })
+    if (checkRes.ok) {
+      const existing = await checkRes.json()
+      if (existing && typeof existing.sha === 'string' && existing.sha) {
+        sha = existing.sha
+      }
+    }
+  } catch {
+    // 文件不存在，是新建
+  }
+
+  const content = JSON.stringify(data, null, 2)
+  const body: Record<string, unknown> = {
+    message: `Update ${filename}`,
+    content: toBase64(content),
+    branch: config.branch,
+  }
+  if (sha) body.sha = sha
+
+  const res = await fetch(url, {
+    method: sha ? 'PUT' : 'POST',
+    headers: getHeaders(token),
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(
+      `保存 Markdown 失败: ${res.status} ${(err as { message?: string }).message || ''}`
+    )
+  }
+}
+
+/** 删除 Markdown 文档集合 */
+export async function deleteMarkdown(
+  token: string,
+  config: RepoConfig,
+  filename: string
+): Promise<void> {
+  const path = `json/${filename}`
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}?ref=${encodeURIComponent(config.branch)}&access_token=${encodeURIComponent(token)}`
+
+  let sha: string | undefined
+  try {
+    const checkRes = await fetch(url, { headers: getHeaders(token) })
+    if (checkRes.ok) {
+      const existing = await checkRes.json()
+      if (existing && typeof existing.sha === 'string' && existing.sha) {
+        sha = existing.sha
+      }
+    }
+  } catch {
+    // 文件不存在
+  }
+
+  if (!sha) return
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: getHeaders(token),
+    body: JSON.stringify({
+      message: `Delete ${filename}`,
+      sha,
+      branch: config.branch,
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`删除 Markdown 失败: ${res.status}`)
   }
 }

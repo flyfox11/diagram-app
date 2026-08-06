@@ -1,4 +1,4 @@
-import type { DiagramData, DiagramMeta } from '@/types/diagram'
+import type { DiagramData, DiagramMeta, MarkdownData } from '@/types/diagram'
 
 const API_BASE = '/api/local'
 
@@ -43,4 +43,35 @@ export async function deleteDiagram(filename: string): Promise<void> {
   await request('/file/' + encodeURIComponent(filename), {
     method: 'DELETE',
   })
+}
+
+/** 读取 Markdown 文档集合（文件不存在时返回空对象） */
+export async function getMarkdown(filename: string): Promise<MarkdownData> {
+  try {
+    return await request<MarkdownData>(`/file/${encodeURIComponent(filename)}`)
+  } catch {
+    return {}
+  }
+}
+
+/** 保存 Markdown 文档集合 */
+export async function saveMarkdown(
+  filename: string,
+  data: MarkdownData
+): Promise<void> {
+  await request('/file/' + encodeURIComponent(filename), {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+/** 删除 Markdown 文档集合 */
+export async function deleteMarkdown(filename: string): Promise<void> {
+  try {
+    await request('/file/' + encodeURIComponent(filename), {
+      method: 'DELETE',
+    })
+  } catch {
+    // 文件不存在时静默忽略
+  }
 }
