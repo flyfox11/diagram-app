@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useRef, useEffect, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { memo, useCallback, useState, useRef, useEffect, useMemo, type DragEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ReactFlow,
@@ -26,6 +26,7 @@ import { useSettingsStore } from '@/store/settings-store'
 import { getVisibleNodeIds } from '@/utils/mindmap-layout'
 import { uploadImage, resolveImageUrl } from '@/services/api'
 import MDEditor from '@uiw/react-md-editor'
+import ReactViewer from 'react-viewer'
 import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X, Palette, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FileText } from 'lucide-react'
 
 /** ---- 工具函数 ---- */
@@ -718,12 +719,23 @@ function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
   const [showPreview, setShowPreview] = useState(false)
   const iconRef = useRef<HTMLSpanElement>(null)
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
-
-  const hasMd = !!data?.hasMarkdown && !!markdownData[id]
-  if (!hasMd) return null
+  const [viewerVisible, setViewerVisible] = useState(false)
+  const [viewerIndex, setViewerIndex] = useState(0)
 
   const content = markdownData[id]?.content || ''
   const previewText = content.slice(0, 300)
+
+  // 从预览文本提取所有图片，用 urlTransform 解析为完整 URL，供 react-viewer 使用
+  const mdImages = useMemo(() => {
+    const matches = [...previewText.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)]
+    return matches.map(([, alt, src]) => ({
+      src: src.startsWith('imgs/') ? resolveImageUrl(activeToken, activeRepoConfig, src) : src,
+      alt: alt || '图片',
+    }))
+  }, [previewText, activeToken, activeRepoConfig])
+
+  const hasMd = !!data?.hasMarkdown && !!markdownData[id]
+  if (!hasMd) return null
 
   const handleMouseEnter = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -758,11 +770,32 @@ function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
               url.startsWith('imgs/')
                 ? resolveImageUrl(activeToken, activeRepoConfig, url)
                 : url
-            } />
+            } components={{
+              img: ({ src, alt }: any) => (
+                <img
+                  src={src}
+                  alt={alt}
+                  onClick={() => {
+                    const idx = mdImages.findIndex((i) => i.src === src)
+                    setViewerIndex(idx >= 0 ? idx : 0)
+                    setViewerVisible(true)
+                  }}
+                  className="cursor-zoom-in"
+                />
+              ),
+            }} />
           </div>
         </div>,
         document.body
       )}
+      <div onClick={(e) => e.stopPropagation()}>
+        <ReactViewer
+          visible={viewerVisible}
+          activeIndex={viewerIndex}
+          images={mdImages}
+          onClose={() => setViewerVisible(false)}
+        />
+      </div>
     </span>
   )
 }
@@ -1137,7 +1170,18 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
   const [text, setText] = useState(existingContent)
   const [mode, setMode] = useState<'edit' | 'live' | 'preview'>(existingContent ? 'live' : 'edit')
   const [imgUploading, setImgUploading] = useState(false)
+  const [viewerVisible, setViewerVisible] = useState(false)
+  const [viewerIndex, setViewerIndex] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // 从 Markdown 文本提取所有图片，用 urlTransform 解析为完整 URL，供 react-viewer 使用
+  const mdImages = useMemo(() => {
+    const matches = [...text.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)]
+    return matches.map(([, alt, src]) => ({
+      src: src.startsWith('imgs/') ? resolveImageUrl(activeToken, activeRepoConfig, src) : src,
+      alt: alt || '图片',
+    }))
+  }, [text, activeToken, activeRepoConfig])
 
   // 在光标处插入文本
   const insertAtCursor = useCallback((insertText: string) => {
@@ -1281,7 +1325,23 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
             height="100%"
             preview={mode}
             textareaProps={{ autoFocus: true }}
-            previewOptions={{ urlTransform }}
+            previewOptions={{
+              urlTransform,
+              components: {
+                img: ({ src, alt }: any) => (
+                  <img
+                    src={src}
+                    alt={alt}
+                    onClick={() => {
+                      const idx = mdImages.findIndex((i) => i.src === src)
+                      setViewerIndex(idx >= 0 ? idx : 0)
+                      setViewerVisible(true)
+                    }}
+                    className="cursor-zoom-in"
+                  />
+                ),
+              },
+            }}
           />
         </div>
         <div className="flex items-center justify-between px-4 py-2 border-t border-gray-700">
@@ -1306,6 +1366,14 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
             保存
           </button>
         </div>
+      </div>
+      <div onClick={(e) => e.stopPropagation()}>
+        <ReactViewer
+          visible={viewerVisible}
+          activeIndex={viewerIndex}
+          images={mdImages}
+          onClose={() => setViewerVisible(false)}
+        />
       </div>
     </div>
   )
