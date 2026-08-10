@@ -255,3 +255,59 @@ export async function deleteMarkdown(
     throw new Error(`删除 Markdown 失败: ${res.status}`)
   }
 }
+
+// ---- 图片文件 CRUD ----
+
+/** 上传图片到 json/imgs/ 目录（base64 内容，文件不存在则自动创建） */
+export async function uploadImage(
+  token: string,
+  config: RepoConfig,
+  filename: string,
+  base64Data: string
+): Promise<void> {
+  const path = `json/${filename}`
+  const url = `${API_BASE}/repos/${config.owner}/${config.repo}/contents/${path}`
+
+  let sha: string | undefined
+  try {
+    const checkRes = await fetch(url, { headers: getHeaders(token) })
+    if (checkRes.ok) {
+      const existing: { sha: string } = await checkRes.json()
+      sha = existing.sha
+    }
+  } catch {
+    // 文件不存在，是新建
+  }
+
+  const body: Record<string, unknown> = {
+    message: `Upload image ${filename}`,
+    content: base64Data,
+    branch: config.branch,
+  }
+  if (sha) body.sha = sha
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      ...getHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(
+      `上传图片失败: ${res.status} ${(err as { message?: string }).message || ''}`
+    )
+  }
+}
+
+/** 获取图片可直接访问的 raw URL（公共仓库可直接用） */
+export function resolveImageUrl(
+  _token: string,
+  config: RepoConfig,
+  filename: string
+): string {
+  return `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/json/${filename}`
+}

@@ -1,0 +1,132 @@
+{
+  "id": "flow-1786339389190",
+  "name": "脚手架",
+  "createdAt": "2026-08-10T05:23:09.190Z",
+  "updatedAt": "2026-08-10T05:23:09.190Z",
+  "nodes": [
+    {
+      "id": "node-1786339251669",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 51
+      },
+      "data": {
+        "label": "脚手架",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1786339303532-xnjt",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 51
+      },
+      "data": {
+        "label": "lang-sync-cli",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 131,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1786339316648-mf5j",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "data": {
+        "label": "背景",
+        "level": 2,
+        "expanded": true,
+        "note": "zklang"
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1786339335442-ipfp",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 50
+      },
+      "data": {
+        "label": "核心功能",
+        "level": 2,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1786339349642-ps1x",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 100
+      },
+      "data": {
+        "label": "说明文档",
+        "level": 2,
+        "expanded": true,
+        "hasMarkdown": true
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1786339303532-97yx",
+      "source": "node-1786339251669",
+      "target": "node-1786339303532-xnjt",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1786339316648-0lk5",
+      "source": "node-1786339303532-xnjt",
+      "target": "node-1786339316648-mf5j",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1786339335442-4bhv",
+      "source": "node-1786339303532-xnjt",
+      "target": "node-1786339335442-ipfp",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1786339349642-q112",
+      "source": "node-1786339303532-xnjt",
+      "target": "node-1786339349642-ps1x",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 440,
+    "y": 297,
+    "zoom": 2
+  },
+  "diagramType": "mindmap"
+}

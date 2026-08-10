@@ -91,3 +91,30 @@ export async function deleteMarkdown(
   }
   return getRemoteApi(config!).deleteMarkdown(token!, config!, filename)
 }
+
+// ---- 图片文件 CRUD ----
+
+/** 上传图片（base64 内容）到 json/imgs/ 目录 */
+export async function uploadImage(
+  token: string | undefined,
+  config: RepoConfig | undefined,
+  filename: string,
+  base64Data: string
+): Promise<void> {
+  if (import.meta.env.DEV) {
+    return localApi.uploadImage(filename, base64Data)
+  }
+  return getRemoteApi(config!).uploadImage(token!, config!, filename, base64Data)
+}
+
+/** 获取图片可直接访问的 URL（同步返回） */
+export function resolveImageUrl(
+  token: string | undefined,
+  config: RepoConfig | undefined,
+  filename: string
+): string {
+  if (import.meta.env.DEV) {
+    return localApi.resolveImageUrl(filename)
+  }
+  return getRemoteApi(config!).resolveImageUrl(token!, config!, filename)
+}

@@ -111,6 +111,44 @@ export default function viteLocalStorage(): Plugin {
             return jsonResponse(res, 200, { ok: true })
           }
 
+          // ---- 图片二进制端点 ----
+
+          // GET /api/local/img/:filename — 返回二进制图片（不经 JSON.parse）
+          const imgMatch = url.pathname.match(/^\/api\/local\/img\/(.+)$/)
+          if (req.method === 'GET' && imgMatch) {
+            const filename = decodeURIComponent(imgMatch[1])
+            const filePath = path.join(JSON_DIR, filename)
+            if (!fs.existsSync(filePath)) {
+              return jsonResponse(res, 404, { error: '图片不存在' })
+            }
+            const ext = path.extname(filename).toLowerCase()
+            const mimeMap: Record<string, string> = {
+              '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+              '.png': 'image/png', '.gif': 'image/gif',
+              '.webp': 'image/webp', '.svg': 'image/svg+xml',
+            }
+            res.statusCode = 200
+            res.setHeader('Content-Type', mimeMap[ext] || 'application/octet-stream')
+            res.end(fs.readFileSync(filePath))
+            return
+          }
+
+          // PUT /api/local/img/:filename — 写入二进制图片（body 为 { content: base64 }）
+          if (req.method === 'PUT' && imgMatch) {
+            const filename = decodeURIComponent(imgMatch[1])
+            const filePath = path.join(JSON_DIR, filename)
+            const dir = path.dirname(filePath)
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true })
+            }
+            const body = await parseBody(req)
+            if (!body || typeof body.content !== 'string') {
+              return jsonResponse(res, 400, { error: '无效的图片数据' })
+            }
+            fs.writeFileSync(filePath, Buffer.from(body.content, 'base64'))
+            return jsonResponse(res, 200, { ok: true })
+          }
+
           jsonResponse(res, 404, { error: '未知的本地 API 路径' })
         } catch (e) {
           jsonResponse(res, 500, { error: (e as Error).message })

@@ -72,6 +72,24 @@ export async function deleteMarkdown(filename: string): Promise<void> {
       method: 'DELETE',
     })
   } catch {
-    // 文件不存在时静默忽略
+    // 文件不存在时静略忽略
   }
+}
+
+// ---- 图片文件 CRUD ----
+
+/** 上传图片（base64 内容写入 json/imgs/ 下的二进制文件） */
+export async function uploadImage(
+  filename: string,
+  base64Data: string
+): Promise<void> {
+  await request('/img/' + encodeURIComponent(filename), {
+    method: 'PUT',
+    body: JSON.stringify({ content: base64Data }),
+  })
+}
+
+/** 获取图片可直接访问的 URL（本地直连中间件端点） */
+export function resolveImageUrl(filename: string): string {
+  return `${API_BASE}/img/${encodeURIComponent(filename)}`
 }

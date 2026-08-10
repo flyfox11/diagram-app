@@ -22,7 +22,9 @@ import {
   type EdgeTypes,
 } from '@xyflow/react'
 import { useDiagramStore } from '@/store/diagram-store'
+import { useSettingsStore } from '@/store/settings-store'
 import { getVisibleNodeIds } from '@/utils/mindmap-layout'
+import { uploadImage, resolveImageUrl } from '@/services/api'
 import MDEditor from '@uiw/react-md-editor'
 import { ExternalLink, Copy, Pencil, Trash2, Link2, Flag as FlagIcon, StickyNote, Image as ImageIcon, X, Palette, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, FileText } from 'lucide-react'
 
@@ -712,6 +714,7 @@ function NodeNoteIcon({ id, data }: { id: string; data: NodeData }) {
 function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
   const setMdEditingNodeId = useDiagramStore((s) => s.setMdEditingNodeId)
   const markdownData = useDiagramStore((s) => s.markdownData)
+  const { activeToken, activeRepoConfig } = useSettingsStore()
   const [showPreview, setShowPreview] = useState(false)
   const iconRef = useRef<HTMLSpanElement>(null)
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null)
@@ -751,7 +754,14 @@ function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
           onMouseLeave={(e) => { e.stopPropagation(); setShowPreview(false) }}
         >
           <div className="text-xs text-gray-200 prose prose-invert prose-sm max-w-none">
-            <MDEditor.Markdown source={previewText} />
+            <MDEditor.Markdown source={previewText} rehypeRewrite={(node: any) => {
+              if (node.type === 'element' && node.tagName === 'img') {
+                const src = node.properties?.src
+                if (typeof src === 'string' && src.startsWith('imgs/')) {
+                  node.properties.src = resolveImageUrl(activeToken, activeRepoConfig, src)
+                }
+              }
+            }} />
           </div>
         </div>,
         document.body
@@ -1123,11 +1133,90 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
   const updateNodeMarkdown = useDiagramStore((s) => s.updateNodeMarkdown)
   const deleteNodeMarkdown = useDiagramStore((s) => s.deleteNodeMarkdown)
   const pushHistory = useDiagramStore((s) => s.pushHistory)
+  const { activeToken, activeRepoConfig } = useSettingsStore()
   const node = nodes.find((n) => n.id === nodeId)
   const nodeLabel = (node?.data?.label as string) || '未命名节点'
   const existingContent = markdownData[nodeId]?.content || ''
   const [text, setText] = useState(existingContent)
   const [mode, setMode] = useState<'edit' | 'live' | 'preview'>(existingContent ? 'live' : 'edit')
+  const [imgUploading, setImgUploading] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // 在光标处插入文本
+  const insertAtCursor = useCallback((insertText: string) => {
+    const textarea = containerRef.current?.querySelector('textarea') as HTMLTextAreaElement | null
+    if (textarea) {
+      const start = textarea.selectionStart ?? text.length
+      const end = textarea.selectionEnd ?? text.length
+      const newText = text.slice(0, start) + insertText + text.slice(end)
+      setText(newText)
+      // 异步恢复光标到插入文本末尾
+      requestAnimationFrame(() => {
+        textarea.focus()
+        const pos = start + insertText.length
+        textarea.setSelectionRange(pos, pos)
+      })
+    } else {
+      setText(text + insertText)
+    }
+  }, [text])
+
+  // 粘贴图片：拦截 clipboardData 中的 image/*，压缩后上传到 imgs/，插入 Markdown 引用
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    let imgFile: File | null = null
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        imgFile = item.getAsFile()
+        break
+      }
+    }
+    if (!imgFile) return
+    e.preventDefault()
+    setImgUploading(true)
+    try {
+      // 压缩为 JPEG（复用节点图片逻辑：限宽 1920，质量 0.8）
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const img = new Image()
+          img.onload = () => {
+            let { width, height } = img
+            const maxW = 1920
+            if (width > maxW) { height = Math.round(height * maxW / width); width = maxW }
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1])
+          }
+          img.onerror = reject
+          img.src = reader.result as string
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(imgFile)
+      })
+      const filename = `imgs/img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+      await uploadImage(activeToken, activeRepoConfig, filename, base64)
+      insertAtCursor(`![粘贴图片](${filename})\n`)
+    } catch (err) {
+      console.error('图片上传失败:', err)
+    } finally {
+      setImgUploading(false)
+    }
+  }, [activeToken, activeRepoConfig, insertAtCursor])
+
+  // 预览时把 imgs/ 相对路径解析为当前存储平台可访问的完整 URL
+  const rehypeRewrite = useCallback((node: any) => {
+    if (node.type === 'element' && node.tagName === 'img') {
+      const src = node.properties?.src
+      if (typeof src === 'string' && src.startsWith('imgs/')) {
+        node.properties.src = resolveImageUrl(activeToken, activeRepoConfig, src)
+      }
+    }
+  }, [activeToken, activeRepoConfig])
 
   const handleSave = () => {
     if (text.trim()) {
@@ -1154,8 +1243,10 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={handleSave}>
       <div
+        ref={containerRef}
         className="w-[640px] max-w-full h-full bg-gray-900 border-l border-gray-700 shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        onPaste={handlePaste}
         data-color-mode="dark"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
@@ -1180,13 +1271,22 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
             </button>
           </div>
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
+          {imgUploading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900/80">
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <div className="w-4 h-4 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
+                上传图片中…
+              </div>
+            </div>
+          )}
           <MDEditor
             value={text}
             onChange={(val) => setText(val || '')}
             height="100%"
             preview={mode}
             textareaProps={{ autoFocus: true }}
+            previewOptions={{ rehypeRewrite }}
           />
         </div>
         <div className="flex items-center justify-between px-4 py-2 border-t border-gray-700">
