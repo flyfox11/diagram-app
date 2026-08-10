@@ -754,14 +754,11 @@ function NodeMarkdownIcon({ id, data }: { id: string; data: NodeData }) {
           onMouseLeave={(e) => { e.stopPropagation(); setShowPreview(false) }}
         >
           <div className="text-xs text-gray-200 prose prose-invert prose-sm max-w-none">
-            <MDEditor.Markdown source={previewText} rehypeRewrite={(node: any) => {
-              if (node.type === 'element' && node.tagName === 'img') {
-                const src = node.properties?.src
-                if (typeof src === 'string' && src.startsWith('imgs/')) {
-                  node.properties.src = resolveImageUrl(activeToken, activeRepoConfig, src)
-                }
-              }
-            }} />
+            <MDEditor.Markdown source={previewText} urlTransform={(url: string) =>
+              url.startsWith('imgs/')
+                ? resolveImageUrl(activeToken, activeRepoConfig, url)
+                : url
+            } />
           </div>
         </div>,
         document.body
@@ -1209,13 +1206,11 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
   }, [activeToken, activeRepoConfig, insertAtCursor])
 
   // 预览时把 imgs/ 相对路径解析为当前存储平台可访问的完整 URL
-  const rehypeRewrite = useCallback((node: any) => {
-    if (node.type === 'element' && node.tagName === 'img') {
-      const src = node.properties?.src
-      if (typeof src === 'string' && src.startsWith('imgs/')) {
-        node.properties.src = resolveImageUrl(activeToken, activeRepoConfig, src)
-      }
+  const urlTransform = useCallback((url: string) => {
+    if (url.startsWith('imgs/')) {
+      return resolveImageUrl(activeToken, activeRepoConfig, url)
     }
+    return url
   }, [activeToken, activeRepoConfig])
 
   const handleSave = () => {
@@ -1286,7 +1281,7 @@ function MarkdownDrawer({ nodeId, onClose }: { nodeId: string; onClose: () => vo
             height="100%"
             preview={mode}
             textareaProps={{ autoFocus: true }}
-            previewOptions={{ rehypeRewrite }}
+            previewOptions={{ urlTransform }}
           />
         </div>
         <div className="flex items-center justify-between px-4 py-2 border-t border-gray-700">
