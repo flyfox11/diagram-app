@@ -2,7 +2,7 @@
   "id": "flow-1789175177149",
   "name": "项目",
   "createdAt": "2026-09-12T01:06:17.149Z",
-  "updatedAt": "2026-09-12T01:06:17.149Z",
+  "updatedAt": "2026-09-12T01:15:32.697Z",
   "nodes": [
     {
       "id": "node-1789175021062",
@@ -87,10 +87,11 @@
       "data": {
         "label": "syzk-element组件库",
         "level": 1,
-        "expanded": true
+        "expanded": true,
+        "hasMarkdown": true
       },
       "measured": {
-        "width": 150,
+        "width": 170,
         "height": 34
       },
       "selected": false
@@ -147,8 +148,8 @@
     }
   ],
   "viewport": {
-    "x": 590,
-    "y": 197,
+    "x": 340,
+    "y": 199,
     "zoom": 2
   },
   "diagramType": "mindmap"
