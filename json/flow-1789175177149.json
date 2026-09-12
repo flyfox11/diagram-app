@@ -1,0 +1,155 @@
+{
+  "id": "flow-1789175177149",
+  "name": "项目",
+  "createdAt": "2026-09-12T01:06:17.149Z",
+  "updatedAt": "2026-09-12T01:06:17.149Z",
+  "nodes": [
+    {
+      "id": "node-1789175021062",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 101
+      },
+      "data": {
+        "label": "几个项目",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 102,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1789175038769-p00w",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "data": {
+        "label": "集群调度",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1789175049479-drbc",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 50
+      },
+      "data": {
+        "label": "挖机pad",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1789175056046-bu86",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 100
+      },
+      "data": {
+        "label": "gis-2d组件库",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 104,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1789175065591-7nty",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 150
+      },
+      "data": {
+        "label": "syzk-element组件库",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 150,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1789175079792-wexw",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 200
+      },
+      "data": {
+        "label": "智矿云（主应用）",
+        "level": 1,
+        "expanded": true
+      },
+      "measured": {
+        "width": 132,
+        "height": 34
+      },
+      "selected": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1789175038769-igjh",
+      "source": "node-1789175021062",
+      "target": "node-1789175038769-p00w",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1789175049479-jxu1",
+      "source": "node-1789175021062",
+      "target": "node-1789175049479-drbc",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1789175056046-qgb4",
+      "source": "node-1789175021062",
+      "target": "node-1789175056046-bu86",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1789175065591-tbqj",
+      "source": "node-1789175021062",
+      "target": "node-1789175065591-7nty",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1789175079792-0y0e",
+      "source": "node-1789175021062",
+      "target": "node-1789175079792-wexw",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 590,
+    "y": 197,
+    "zoom": 2
+  },
+  "diagramType": "mindmap"
+}
