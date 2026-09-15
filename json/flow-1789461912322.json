@@ -1,0 +1,60 @@
+{
+  "id": "flow-1789461912322",
+  "name": "重要",
+  "createdAt": "2026-09-15T08:45:12.322Z",
+  "updatedAt": "2026-09-15T08:45:12.322Z",
+  "nodes": [
+    {
+      "id": "node-1789461827638",
+      "type": "mindmap",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "重要内容",
+        "level": 0,
+        "expanded": true
+      },
+      "measured": {
+        "width": 102,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1789461842671-cek2",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "data": {
+        "label": "多车轨迹",
+        "level": 1,
+        "expanded": true,
+        "hasMarkdown": true
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1789461842671-de5b",
+      "source": "node-1789461827638",
+      "target": "node-1789461842671-cek2",
+      "type": "mindmap"
+    }
+  ],
+  "viewport": {
+    "x": 660,
+    "y": 397,
+    "zoom": 2
+  },
+  "diagramType": "mindmap"
+}
