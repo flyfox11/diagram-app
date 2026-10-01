@@ -2,14 +2,14 @@
   "id": "flow-1785995334898",
   "name": "frontend",
   "createdAt": "2026-08-06T05:48:54.898Z",
-  "updatedAt": "2026-08-06T05:53:31.305Z",
+  "updatedAt": "2026-10-01T07:13:00.213Z",
   "nodes": [
     {
       "id": "node-1785995193159",
       "type": "mindmap",
       "position": {
         "x": 0,
-        "y": 50
+        "y": 175
       },
       "data": {
         "label": "框架分类",
@@ -97,6 +97,124 @@
         "height": 34
       },
       "selected": false
+    },
+    {
+      "id": "node-1790817671287-89s8",
+      "type": "mindmap",
+      "position": {
+        "x": 220,
+        "y": 250
+      },
+      "data": {
+        "label": "docker+k8s",
+        "level": 1,
+        "expanded": true,
+        "note": "Kubernetes 简称 K8s\n-------------------------\nPod：真正运行应用容器的最小单元\nService：为一组 Pod 提供稳定的访问地址和负载均衡\nIngress：根据域名或 URL 路径，把外部 HTTP/HTTPS 请求转发到不同 Service\n\n简单记忆：\nIngress 根据域名、路径找 Service\nService 找到并负载均衡 Pod\nPod 负责运行容器\nDeployment 负责维护 Pod 数量、滚动更新和故障恢复\n\n关系协作：\n互联网用户\n    ↓\nIngress Controller\n    ↓ 根据域名、路径匹配 Ingress 规则\nService\n    ↓ 负载均衡\n多个 Pod\n    ↓\n容器中的应用程序\n-------------------------\nK8s 的基本结构\nKubernetes 集群 Cluster\n├── 控制平面 Control Plane\n│   ├── API Server\n│   ├── Scheduler\n│   └── Controller Manager\n│\n└── 工作节点 Node\n    ├── Pod A\n    │   └── 容器\n    ├── Pod B\n    │   └── 容器\n    └── Pod C\n        ├── 业务容器\n        └── 辅助容器\n\n概念\t含义\nCluster\t整个 Kubernetes 集群\nNode\t集群中的一台物理机或虚拟机\nPod\tK8s 调度和运行应用的最小单元\nContainer\tPod 中真正运行的 Docker 等容器\nDeployment\t管理一组 Pod 的副本、升级和恢复\nService\t为 Pod 提供稳定地址和负载均衡\nIngress\t定义外部 HTTP/HTTPS 请求的路由规则\nIngress Controller\t真正执行 Ingress 规则的程序\n\n-------------------------\n前后端项目的完整示例\n假设有：\nVue 前端\nPython FastAPI 后端\n域名 app.example.com\n\n1. 后端 Deployment\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: backend\nspec:\n  replicas: 3\n\n  selector:\n    matchLabels:\n      app: backend\n\n  template:\n    metadata:\n      labels:\n        app: backend\n\n    spec:\n      containers:\n        - name: backend\n          image: example/backend:1.0.0\n          ports:\n            - containerPort: 8000\n\n2. 后端 Service\n\napiVersion: v1\nkind: Service\nmetadata:\n  name: backend-service\nspec:\n  selector:\n    app: backend\n\n  ports:\n    - port: 80\n      targetPort: 8000\n\n3. 前端 Deployment\n前端镜像内部通常使用 Nginx 提供构建后的 dist 文件：\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: frontend\nspec:\n  replicas: 2\n\n  selector:\n    matchLabels:\n      app: frontend\n\n  template:\n    metadata:\n      labels:\n        app: frontend\n\n    spec:\n      containers:\n        - name: frontend\n          image: example/frontend:1.0.0\n          ports:\n            - containerPort: 80\n4. 前端 Service\n\napiVersion: v1\nkind: Service\nmetadata:\n  name: frontend-service\nspec:\n  selector:\n    app: frontend\n\n  ports:\n    - port: 80\n      targetPort: 80\n\n5. Ingress\n\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: web-ingress\nspec:\n  ingressClassName: nginx\n\n  rules:\n    - host: app.example.com\n      http:\n        paths:\n          - path: /api\n            pathType: Prefix\n            backend:\n              service:\n                name: backend-service\n                port:\n                  number: 80\n\n          - path: /\n            pathType: Prefix\n            backend:\n              service:\n                name: frontend-service\n                port:\n                  number: 80\n\n完整关系：\n\napp.example.com/api/users\n        ↓\n    Ingress\n        ↓\n backend-service\n        ↓\n3 个 backend Pod 中的一个\n\napp.example.com/\n        ↓\n    Ingress\n        ↓\nfrontend-service\n        ↓\n2 个 frontend Pod 中的一个"
+      },
+      "measured": {
+        "width": 144,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "node-1790834747735-dehr",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 150
+      },
+      "data": {
+        "label": "Pod",
+        "level": 2,
+        "expanded": true,
+        "note": "Pod 是 K8s 最小的部署单元\n\n Pod 也可以包含多个紧密相关的容器：\n\n一个 Pod\n├── 主业务容器\n└── 辅助容器 Sidecar\n\n两个容器作为一个整体进行：\n创建、调度、启动、停止、删除\n\n不应该把没有紧密关系的程序放到同一个 Pod。例如前端、后端和数据库通常不应该全部放在一个 Pod 中\n\nPod 是临时的，不应该依赖 Pod IP\nPod 可能因为以下原因被替换：\n应用崩溃、、健康检查失败、Node 故障、发布新版本、扩容或缩容、管理员删除 Pod资源不足导致驱逐\n-------------------------\n虽然可以直接创建 Pod，但生产环境通常使用 Deployment 管理 Pod。\n\n如果直接创建：\nkind: Pod\n然后这个 Pod 被删除，普通裸 Pod不会由 Deployment 自动补回。\n\n生产环境一般需要：\n\n1.保持指定数量的副本\n2.Pod 异常时自动恢复\n3.滚动发布\n4.版本回滚\n5.水平扩容\n-------------------------\nDeployment 管理 Pod\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: backend\nspec:\n  replicas: 3\n\n  selector:\n    matchLabels:\n      app: backend\n\n  template:\n    metadata:\n      labels:\n        app: backend\n\n    spec:\n      containers:\n        - name: backend\n          image: example/backend:1.0.0\n          ports:\n            - containerPort: 8000\n\nreplicas: 3  表示希望一直存在三个后端 Pod.如果其中一个 Pod 崩溃, Deployment 的控制器会创建新 Pod，使副本数重新达到 3。\n-------------------------\nPod 的健康检查\nService 应该只把流量转给已经准备好的 Pod，因此 Pod 通常需要配置探针。\n\n就绪探针 readinessProbe\n判断 Pod 是否可以接收请求：\n\nreadinessProbe:\n  httpGet:\n    path: /health\n    port: 8000\n  initialDelaySeconds: 5\n  periodSeconds: 10\n检查失败时：\n\nPod 不一定被重启\nService 暂时不再向它转发流量"
+      },
+      "measured": {
+        "width": 80,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1790835137145-rbdo",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 200
+      },
+      "data": {
+        "label": "Service",
+        "level": 2,
+        "expanded": true,
+        "note": "Service 是 Pod 和 Ingress 之间的重要一层\n\n有三个后端 Pod：\n10.244.1.11:8000\n10.244.1.12:8000\n10.244.2.15:8000\n\n可以创建一个 Service：\napiVersion: v1\nkind: Service\nmetadata:\n  name: backend-service\nspec:\n  selector:\n    app: backend\n\n  ports:\n    - port: 80\n      targetPort: 8000\n\n  type: ClusterIP\n\n这里最重要的是：\nselector:\n  app: backend\n它会选择带有下面标签的 Pod：\nlabels:\n  app: backend\n\n关系如下：\nbackend-service\n      ↓ selector: app=backend\n├── backend-pod-1\n├── backend-pod-2\n└── backend-pod-3\n\nport: 80：Service 对外提供的端口\ntargetPort: 8000：Pod 中应用监听的端口\n其他服务可以使用：\nhttp://backend-service\n实际上会转发到：\nhttp://某个后端Pod:8000\n\n-------------------------\n\nService 的几种常见类型\n1. ClusterIP\n默认类型，只允许集群内部访问：\ntype: ClusterIP\n最常与 Ingress 搭配：\n外部请求 → Ingress → ClusterIP Service → Pod\n2.NodePort\n在每台 Node 上开放一个端口：\nNodeIP:30080 → Service → Pod\n3.LoadBalancer\n让云平台创建外部负载均衡器：\ntype: LoadBalancer"
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1790835314880-5hns",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 250
+      },
+      "data": {
+        "label": "Ingress",
+        "level": 2,
+        "expanded": true,
+        "note": "Ingress 是 Kubernetes 中用于管理外部 HTTP/HTTPS 请求路由的资源。\n\n主要根据：域名/URL 路径, 把请求转发给不同 Service 如：\nexample.com/         → frontend-service\nexample.com/api/     → backend-service\nadmin.example.com/   → admin-service\n\n对应结构：\n\n互联网\n   ↓\nIngress Controller\n   ↓ 读取 Ingress 规则\n   ├── frontend-service → 前端 Pod\n   ├── backend-service  → 后端 Pod\n   └── admin-service    → 管理后台 Pod\n\nIngress 示例\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: application-ingress\nspec:\n  ingressClassName: nginx\n\n  rules:\n    - host: example.com\n      http:\n        paths:\n          - path: /\n            pathType: Prefix\n            backend:\n              service:\n                name: frontend-service\n                port:\n                  number: 80\n\n          - path: /api\n            pathType: Prefix\n            backend:\n              service:\n                name: backend-service\n                port:\n                  number: 80\n\n效果如下：\nGET https://example.com/\n→ frontend-service\n\nGET https://example.com/assets/app.js\n→ frontend-service\n\nGET https://example.com/api/users\n→ backend-service\n\n-------------------------\nIngress 不等于 Ingress Controller\n\n1.Ingress 是规则\nIngress YAML 只是告诉 K8s：\nexample.com/api 应该转到 backend-service\n它本身不会真正监听 80 或 443 端口，也不会自动转发流量。\n\n类似于一份配置清单：\n\n域名 example.com\n/api → backend-service\n/    → frontend-service\n2.Ingress Controller 是执行规则的程序\n真正接收请求并执行规则的是 Ingress Controller。\n\n常见的 Ingress Controller：\n\ningress-nginx\nTraefik\nHAProxy Ingress\nKong Ingress Controller\n云厂商提供的 ALB Ingress Controller\n\n例如使用 ingress-nginx：\n用户请求\n   ↓\nNGINX Ingress Controller\n   ↓ 读取 Ingress 对象\nbackend-service\n   ↓\nbackend Pod\n\n-------------------------\n\n假设用户访问：\n\nhttps://example.com/api/users\n\n完整过程如下：\n1. 浏览器进行 DNS 解析\n   example.com → 外部负载均衡 IP\n2. 请求到达 Ingress Controller\n   监听 80/443 端口\n3. Ingress Controller 匹配规则\n   host = example.com\n   path 以 /api 开头\n4. 找到 backend-service\n5. backend-service 选择一个健康 Pod\n6. 请求进入 Pod 的 8000 端口\n7. Pod 中的 Python/Java/Node 应用处理请求\n8. 响应沿原路径返回浏览器"
+      },
+      "measured": {
+        "width": 88,
+        "height": 34
+      },
+      "selected": false,
+      "dragging": true
+    },
+    {
+      "id": "node-1790836567071-4ceh",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 300
+      },
+      "data": {
+        "label": "常用命令",
+        "level": 2,
+        "expanded": true,
+        "note": "查看 Pod：\nkubectl get pods\n\n查看更详细的信息：\nkubectl describe pod backend-xxxx\n\n查看 Pod 日志：\nkubectl logs backend-xxxx\n\n查看 Deployment：\nkubectl get deployments\n\n查看 Service：\nkubectl get services\n\n查看 Ingress：\nkubectl get ingress\n\n查看 Ingress 详情和事件：\nkubectl describe ingress web-ingress\n\n查看 Pod 的标签和 IP：\nkubectl get pods -o wide --show-labels\n\n查看 Service 实际关联到哪些后端端点：\nkubectl get endpoints\n\n排查访问问题时，可以按照顺序检查：\n\nIngress 是否匹配域名和路径\n    ↓\nService 名称和端口是否正确\n    ↓\nService 是否选中了 Pod\n    ↓\nPod 是否 Ready\n    ↓\n容器是否监听正确端口\n    ↓\n应用本身是否正常"
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": false
+    },
+    {
+      "id": "node-1790836850691-idlp",
+      "type": "mindmap",
+      "position": {
+        "x": 440,
+        "y": 350
+      },
+      "data": {
+        "label": "实例解释",
+        "level": 2,
+        "expanded": true,
+        "note": "yaml ： --- apiVersion: apps/v1 kind: Deployment metadata:   annotations: {}   labels:     app: live-platform   name: live-platform   namespace: mos-dev   resourceVersion: '36593758' spec:   progressDeadlineSeconds: 600   replicas: 1   revisionHistoryLimit: 10   selector:     matchLabels:       app: live-platform   strategy:     rollingUpdate:       maxSurge: 25%       maxUnavailable: 25%     type: RollingUpdate   template:     metadata:       creationTimestamp: null       labels:         app: live-platform     spec:       containers:         - env:             - name: TZ               value: America/Sao_Paulo             - name: SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR               value: '10.36.36.104:8848,10.36.36.105:8848,10.36.36.106:8848'             - name: SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR               value: '10.36.36.104:8848,10.36.36.105:8848,10.36.36.106:8848'             - name: SPRING_CLOUD_NACOS_USERNAME               value: nacos             - name: SPRING_CLOUD_NACOS_PASSWORD               value: nacos             - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE               value: adaf3174-248c-48f0-ae84-0ae1be4e4211             - name: SPRING_CLOUD_NACOS_CONFIG_NAMESPACE               value: adaf3174-248c-48f0-ae84-0ae1be4e4211           image: >-             devops-public-registry.sany.com.cn/sany-zhikuang/syzk-iot-dvpn-mine-live-platform:huzf12-20260909103009-dev           imagePullPolicy: Always           name: live-platform           ports:             - containerPort: 80               protocol: TCP           resources:             limits:               cpu: 500m               memory: 512Mi             requests:               cpu: 150m               memory: 256Mi           terminationMessagePath: /dev/termination-log           terminationMessagePolicy: File           volumeMounts:             - mountPath: /logs               name: logs       dnsPolicy: ClusterFirst       imagePullSecrets:         - name: registry       restartPolicy: Always       schedulerName: default-scheduler       securityContext: {}       terminationGracePeriodSeconds: 30       volumes:         - name: logs           persistentVolumeClaim:             claimName: live-platform-dev-pvc  --- apiVersion: v1 kind: Service metadata:   annotations: {}   labels:     app: live-platform   name: live-platform   namespace: mos-dev   resourceVersion: '36578848' spec:   clusterIP: 169.169.60.222   clusterIPs:     - 169.169.60.222   internalTrafficPolicy: Cluster   ipFamilies:     - IPv4   ipFamilyPolicy: SingleStack   ports:     - name: live-platform       port: 80       protocol: TCP       targetPort: 80   selector:     app: live-platform   sessionAffinity: None   type: ClusterIP\n\n-------------------------\n\ndev的kuboard配置顺序： 1.在mos-dev/ 首页 点从Yaml 创建，然后从 上面的yaml copy一份过去，记得删除对应的clusterIP， clusterIPs。把服务名，pvc等填对  2.创建存储，在存储菜单模仿其他的创建一个pvc 3.镜像改版 和 应用路由Ingress（前端都是80）添加\n\n-------------------------\n\n第一个资源：Deployment\n  └── 创建并维护 1 个 live-platform Pod\n        └── Pod 内运行 live-platform 容器\n\n第二个资源：Service\n  └── 为这个 Pod 提供稳定的集群内访问地址\n\n访问关系是：\n\n集群内其他应用\n  ↓\nlive-platform Service:80\n  ↓ selector 匹配 app=live-platform\nlive-platform Pod:80\n  ↓\n容器中的应用\n\n执行：\nkubectl apply -f live-platform.yaml\n时，会同时处理 Deployment 和 Service。\n\n-------------------------\n\napiVersion: apps/v1\nkind: Deployment\n\n含义：\n\n使用 Kubernetes apps/v1 API\n创建一个 Deployment\nDeployment 负责维护 Pod 数量、滚动更新和故障恢复\n\n不是直接运行应用，而是间接管理：\n\nDeployment\n  ↓ 创建和管理\nReplicaSet\n  ↓ 创建和管理\nPod\n  ↓ 运行\nContainer\n\nlabels:\n  app: live-platform\n这是 Deployment 对象自身的标签，可以用于查找和分类\n\nannotations: {}\n表示当前没有注解。空对象可以删除，不影响功能。注解一般用于保存一些额外配置，例如 Ingress Controller 配置、发布信息或管理工具元数据。\n\nresourceVersion: '36593758'\n这是 Kubernetes API Server 自动维护的资源版本号，经常出现在从 Kuboard 或下面命令导出的 YAML 。\n通常不是手写的业务配置。把 YAML 作为可复用部署文件、提交 Git 或部署到另一个集群时，建议删除\n\nspec:\n  replicas: 1\n表示 Deployment 希望始终保持一个 Pod。如果这个 Pod 崩溃或被删除，Deployment 会重新创建一个新的 Pod\n\nDeployment 如何识别自己管理的 Pod？\nselector:\n  matchLabels:\n    app: live-platform\nDeployment 通过标签选择器寻找：\napp=live-platform\n的 Pod。\n对应的 Pod 标签定义在：\ntemplate:\n  metadata:\n    labels:\n      app: live-platform\n\nstrategy:\n  rollingUpdate:\n    maxSurge: 25%\n    maxUnavailable: 25%\n  type: RollingUpdate\n表示使用滚动更新，而不是一次性删除旧 Pod 后创建新 Pod\n\nmaxSurge: 25%\n表示滚动更新期间，允许实际 Pod 数量最多比期望副本数多 25%\n\nmaxUnavailable: 25%\n表示滚动更新期间，最多允许 25% 的 Pod 不可用\n\nprogressDeadlineSeconds: 600\n表示一次 Deployment 发布如果 600 秒，也就是 10 分钟内一直没有取得进展，会被标记为发布进度超时\n\nrevisionHistoryLimit: 10\n表示 Deployment 最多保留 10 个旧 ReplicaSet，用于查看发布历史和回滚\n\ntemplate 是 Pod 模板\ntemplate:\n  metadata:\n    creationTimestamp: null\n    labels:\n      app: live-platform\n  spec:\n    ...\nDeployment 根据这部分内容创建 Pod。\n可以这样理解：\nDeployment 自己的配置\nspec:\n  replicas\n  selector\n  strategy\nPod 的配置模板\nspec:\n  template:\n    metadata\n    spec\n\ncontainers:\n  - name: live-platform\n表示 Pod 中有一个容器，容器名称为：live-platform\n\nenv:\n  - name: TZ\n    value: America/Sao_Paulo\n环境变量，表示使用巴西圣保罗时区。\n\nNacos 地址\n- name: SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR\n  value: '10.36.36.104:8848,10.36.36.105:8848,10.36.36.106:8848'\n这是 Nacos 服务发现服务器地址。配置了三个地址，通常意味着 Nacos 是集群部署：\nNacos 节点 1：10.36.36.104:8848\nNacos 节点 2：10.36.36.105:8848\nNacos 节点 3：10.36.36.106:8848\n\n- name: SPRING_CLOUD_NACOS_USERNAME\n  value: nacos\n- name: SPRING_CLOUD_NACOS_PASSWORD\n  value: nacos\n表示应用使用以下凭证连接 Nacos：\n用户名：nacos\n密码：nacos\n\n容器镜像\nimage: >-\n  devops-public-registry.sany.com.cn/sany-zhikuang/syzk-iot-dvpn-mine-live-platform:huzf12-20260909103009-dev\n这是容器镜像的完整地址，可以拆成：\n镜像仓库：\ndevops-public-registry.sany.com.cn\n仓库路径：\nsany-zhikuang/syzk-iot-dvpn-mine-live-platform\n镜像标签：\nhuzf12-20260909103009-dev\n\nimagePullPolicy: Always\n表示每次创建容器时，都让容器运行时向镜像仓库检查或拉取镜像。\n\nports:\n  - containerPort: 80\n    protocol: TCP\n表示该容器预期通过 TCP 80 端口提供服务。\n\nresources:\n  limits:\n    cpu: 500m\n    memory: 512Mi\n  requests:\n    cpu: 150m\n    memory: 256Mi\n表示调度这个 Pod 时，K8s 至少要为容器考虑：\nCPU：150m\n内存：256Mi\n容器资源使用上限：\nCPU 最多约 0.5 核\n内存最多 512Mi\n\nterminationMessagePath: /dev/termination-log\nterminationMessagePolicy: File\n表示容器终止时，K8s 从：\n/dev/termination-log读取终止信息。\n\n容器部分：\nvolumeMounts:\n  - mountPath: /logs\n    name: logs\nPod 卷部分：\nvolumes:\n  - name: logs\n    persistentVolumeClaim:\n      claimName: live-platform-dev-pvc\n最终效果：\n容器中的 /logs\n      ↓ 挂载\nPVC live-platform-dev-pvc\n      ↓ 绑定\nPV / 实际存储\n应用写入：/logs/app.log\n\ndnsPolicy: ClusterFirst\n这是 Pod 的常见默认 DNS 策略。Pod 查询集群服务名时，优先使用 Kubernetes 集群 DNS\n\nimagePullSecrets:\n  - name: registry\n表示拉取私有镜像时使用名为：registry的 Kubernetes Secret\n\nrestartPolicy: Always\n表示容器退出后，Kubelet 会尝试重启它。对 Deployment 管理的 Pod 来说，restartPolicy 必须是 Always，这是正常配置。\n\nschedulerName: default-scheduler\n表示使用 Kubernetes 默认调度器选择 Pod 应该运行在哪个 Node 上。\n\nterminationGracePeriodSeconds: 30\n表示删除 Pod 时，K8s 先向容器主进程发送终止信号，然后最多等待 30 秒。\n\n-------------------------\n\napiVersion: v1\nkind: Service\n表示创建一个 Service。\nService 用来解决 Pod IP 不稳定的问题。\nPod 可能变化：\n旧 Pod IP：10.244.1.10\n新 Pod IP：10.244.2.25\n但 Service 的访问入口保持稳定\n\nmetadata:\n  labels:\n    app: live-platform\n  name: live-platform\n  namespace: mos-dev\nService 名称：live-platform, 命名空间 mos-dev\n\nService 的 resourceVersion 同样是服务端生成的元数据：\nresourceVersion: '36578848'\n如果将配置作为可复用部署文件，通常建议删除。\n\nService 如何找到 Pod？\nselector:\n  app: live-platform\n它会找到所有带有以下标签的 Pod：\nlabels:\n  app: live-platform\n正好对应 Deployment 的 Pod 模板：\ntemplate:\n  metadata:\n    labels:\n      app: live-platform\n完整匹配关系：\nService selector\napp=live-platform\n        ↓\nDeployment 创建的 Pod labels\napp=live-platform\n\nports:\n  - name: live-platform\n    port: 80\n    protocol: TCP\n    targetPort: 80\n含义：\nService 监听端口：80\nPod 目标端口：80\n使用协议：TCP\n请求链路：\n访问 Service 的 80 端口\n        ↓\nService 选择一个匹配的 Pod\n        ↓\n转发到 Pod 的 80 端口\n\nService 类型\ntype: ClusterIP\n表示这是一个仅供集群内部使用的 Service。\n\nclusterIP: 169.169.60.222\nclusterIPs:\n  - 169.169.60.222\n这是 Service 在集群内的虚拟 IP\n通常由 Kubernetes 自动分配。它也属于创建后的运行时配置。把 YAML 迁移到其他集群时，通常建议删除\n\nipFamilies:\n  - IPv4\nipFamilyPolicy: SingleStack\n表示 Service 只使用 IPv4\n\ninternalTrafficPolicy: Cluster\n表示集群内部访问 Service 时，可以把请求转发给整个集群范围内的可用 Pod，不要求 Pod 与请求来源位于同一 Node\n\n会话保持\nsessionAffinity: None\n表示不启用基于客户端 IP 的会话保持。\n同一个客户端连续请求时，如果将副本扩容到多个，可能被分发到不同 Pod\n\n---------------------------------------\n\n完整运行过程\n\n部署时：\n1. 创建 Deployment live-platform\n2. Deployment 创建 ReplicaSet\n3. ReplicaSet 创建 1 个 Pod\n4. 调度器选择一个 Node\n5. Node 使用 registry Secret 拉取私有镜像\n6. 将 live-platform-dev-pvc 挂载到 /logs\n7. 注入 TZ、Nacos 等环境变量\n8. 启动容器中的应用\n9. 应用监听 80 端口\n10. 应用连接 Nacos 集群\n11. Service 根据 app=live-platform 找到 Pod\n12. 集群内请求可以通过 live-platform:80 访问应用\n请求链路：\n\n集群内其他 Pod\n  │ http://live-platform.mos-dev:80\n  ▼\nService\n  │ selector: app=live-platform\n  ▼\nlive-platform Pod\n  │ targetPort: 80\n  ▼\nlive-platform 容器\n  │\n  ▼\nJava/Spring 应用\n如果外部还有一份未展示的 Ingress，完整链路才是：\n\n浏览器\n  ↓\nIngress Controller\n  ↓\nIngress 规则\n  ↓\nService live-platform:80\n  ↓\nPod:80\n  ↓\n应用"
+      },
+      "measured": {
+        "width": 96,
+        "height": 34
+      },
+      "selected": false
     }
   ],
   "edges": [
@@ -123,11 +241,47 @@
       "source": "node-1785995223519-mgf9",
       "target": "node-1785995241305-rt3w",
       "type": "mindmap"
+    },
+    {
+      "id": "edge-1790817671287-wogx",
+      "source": "node-1785995193159",
+      "target": "node-1790817671287-89s8",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1790834747735-krbr",
+      "source": "node-1790817671287-89s8",
+      "target": "node-1790834747735-dehr",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1790835137145-pfej",
+      "source": "node-1790817671287-89s8",
+      "target": "node-1790835137145-rbdo",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1790835314880-89at",
+      "source": "node-1790817671287-89s8",
+      "target": "node-1790835314880-5hns",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1790836567072-1sfs",
+      "source": "node-1790817671287-89s8",
+      "target": "node-1790836567071-4ceh",
+      "type": "mindmap"
+    },
+    {
+      "id": "edge-1790836850691-erfd",
+      "source": "node-1790817671287-89s8",
+      "target": "node-1790836850691-idlp",
+      "type": "mindmap"
     }
   ],
   "viewport": {
-    "x": 468.1323139911674,
-    "y": 290.96009955687236,
+    "x": 268.6684268534682,
+    "y": -164.33544882841693,
     "zoom": 2
   },
   "diagramType": "mindmap"
